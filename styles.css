@@ -140,6 +140,8 @@ body.colorblind-mode .colorblind-cell-shape,body.colorblind-mode .colorblind-shi
 .answer-result.good{color:var(--good);font-weight:800}
 .answer-result.bad{color:var(--bad);font-weight:800}
 .final-result{margin-top:14px;font-weight:900;font-size:1.05rem}
+.result-share{margin-top:12px;padding-top:12px;border-top:1px solid rgba(19,45,77,.12)}
+.result-share .status-line{text-align:center}
 .hint-heading{display:flex;justify-content:space-between;align-items:start;gap:12px}
 .hint-heading p{font-size:.9rem;color:var(--muted);line-height:1.45}
 .points-pill{white-space:nowrap;background:var(--paper-deep);border-radius:999px;padding:7px 10px;font-weight:900}
