@@ -323,10 +323,19 @@
 
   async function checkAnswers(){
     if(!activeChallenge) return;
-    const [lineOK,colorOK]=await Promise.all([
-      C.checkAnswer(lineAnswer.value,activeChallenge.lineHash),
-      C.checkAnswer(colorAnswer.value,activeChallenge.colorHash)
-    ]);
+    let lineOK=false;
+    let colorOK=false;
+
+    if(activeChallenge.lineHash && activeChallenge.colorHash){
+      [lineOK,colorOK]=await Promise.all([
+        C.checkAnswer(lineAnswer.value,activeChallenge.lineHash),
+        C.checkAnswer(colorAnswer.value,activeChallenge.colorHash)
+      ]);
+    }else{
+      const expected=C.decodeChallengeMessages(activeChallenge);
+      lineOK=C.normalizeAnswer(lineAnswer.value)===expected.line;
+      colorOK=C.normalizeAnswer(colorAnswer.value)===expected.color;
+    }
 
     lineResult.textContent=lineOK?'Line message correct.':'Line message does not match yet.';
     lineResult.className='answer-result '+(lineOK?'good':'bad');
