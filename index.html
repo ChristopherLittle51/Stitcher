@@ -105,6 +105,24 @@
             <div class="field-note"><strong>10 characters per grid:</strong> 5 hue-row letters + 5 shade-column letters.</div>
           </div>
 
+          <div class="creator-key-defaults">
+            <div class="field-group">
+              <label for="default-shift">Default color shift</label>
+              <select id="default-shift" aria-describedby="default-shift-note"></select>
+              <div id="default-shift-note" class="field-note">Sets the starting complementary hue pair for every generated grid. You can change each grid independently in the preview.</div>
+            </div>
+            <div class="field-group">
+              <label for="default-rotation">Default rotation</label>
+              <select id="default-rotation" aria-describedby="default-rotation-note">
+                <option value="0">0° · dot top-left</option>
+                <option value="90">90° · dot top-right</option>
+                <option value="180">180° · dot bottom-right</option>
+                <option value="270">270° · dot bottom-left</option>
+              </select>
+              <div id="default-rotation-note" class="field-note">Sets the starting orientation. Each 5×5 grid can be rotated independently afterward.</div>
+            </div>
+          </div>
+
           <div class="creator-actions">
             <button id="build-puzzle" class="primary-button">Build puzzle</button>
             <button id="randomize-keys" class="secondary-button">Randomize grid keys</button>
