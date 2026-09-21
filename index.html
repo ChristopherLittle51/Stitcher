@@ -32,7 +32,7 @@
       <div class="hero">
         <div class="eyebrow">A two-layer visual cipher</div>
         <h1>Read the stitches.<br>Read the colors.</h1>
-        <p class="hero-copy">Every 5×5 block can hide two separate messages at once. Your theoretical maximum score scales with the cipher's length, and points are only spent when you ask Stitcher to reveal puzzle-specific information.</p>
+        <p class="hero-copy">Every 5×5 block can hide two separate messages at once. Your theoretical maximum score scales with the cipher's length. Using the built-in bit worksheet or asking Stitcher to reveal rotation/color information spends points.</p>
       </div>
 
       <div id="challenge-empty" class="panel centered-panel">
@@ -57,13 +57,9 @@
         <section class="annotation-toolbar panel" aria-label="Puzzle annotation controls">
           <div>
             <strong>Tap-to-decode worksheet</strong>
-            <p>Mark your own 0/1 guesses for free, or switch to Reveal mode when you want Stitcher to supply the correct bit for 1 point.</p>
+            <p>Tap a stitch, gap, or color cell to write down a 0/1 bit. The first time you use the worksheet for a real message bit costs 1 point; changing that mark later is free.</p>
           </div>
           <div class="annotation-actions">
-            <div class="annotation-mode" role="group" aria-label="Marker assistance mode">
-              <button id="mark-bits" class="annotation-mode-button active" type="button" aria-pressed="true">Mark bits</button>
-              <button id="reveal-bits" class="annotation-mode-button" type="button" aria-pressed="false">Reveal bit · −1</button>
-            </div>
             <div class="annotation-mode" role="group" aria-label="Square annotation mode">
               <button id="annotate-hue" class="annotation-mode-button active" type="button" aria-pressed="true">Hue bits</button>
               <button id="annotate-shade" class="annotation-mode-button" type="button" aria-pressed="false">Shade bits</button>
@@ -72,7 +68,7 @@
           </div>
         </section>
 
-        <p class="annotation-note">Manual marks, rotation guesses, and color-shift guesses are free. Paid reveals stay highlighted. Completed groups update using your current color-shift guess.</p>
+        <p class="annotation-note">Each real message bit costs at most 1 point the first time you mark it. Clearing or changing a previously marked bit does not charge again. Rotation and color-shift guesses are free; asking for the correct value costs points. Completed groups update using your current color-shift guess.</p>
 
         <div id="challenge-grids" class="grid-gallery" aria-live="polite"></div>
 
@@ -99,7 +95,7 @@
             <div class="hint-heading">
               <div>
                 <h3>Hints</h3>
-                <p>General hints are free. Your score only drops when Stitcher reveals puzzle-specific bits, rotation, or color shift.</p>
+                <p>General hints are free. Your score drops when you use the built-in bit worksheet, or when Stitcher reveals the correct rotation or color shift.</p>
               </div>
               <span id="points-left" class="points-pill">Free</span>
             </div>
@@ -268,13 +264,13 @@
 
       <section class="panel scoring-rules">
         <h2>Information score</h2>
-        <p>Your theoretical maximum scales with the actual cipher length: <strong>5 points per line-message character + 5 points per color-message character + 2 rotation points and 4 color-shift points per grid.</strong> Reading rules, using colorblind mode, making your own guesses, and opening hints are free.</p>
+        <p>Your theoretical maximum scales with the actual cipher length: <strong>5 points per line-message character + 5 points per color-message character + 2 rotation points and 4 color-shift points per grid.</strong> Reading rules, using colorblind mode, typing your final answers, and opening hints are free.</p>
         <div class="score-cost-grid">
-          <div><strong>Reveal one 0/1 marker</strong><span>−1 point</span></div>
+          <div><strong>Mark one 0/1 bit in the worksheet</strong><span>−1 point</span></div>
           <div><strong>Reveal the correct orientation</strong><span>−2 points</span></div>
           <div><strong>Reveal the correct color shift</strong><span>−4 points</span></div>
         </div>
-        <p class="field-note">You can freely try any rotation or color shift. Points are only deducted when Stitcher supplies the correct value. Padding in the final partially used grid does not increase the theoretical maximum, and a previously revealed item never charges twice.</p>
+        <p class="field-note">A bit is charged only the first time you mark it, even if you later erase or change it. Padding bits are free. You can freely try any rotation or color shift; points are only deducted there when Stitcher supplies the correct value.</p>
         <h3>Free hints</h3>
         <div id="rules-hint-table" class="rules-hint-table"></div>
       </section>
@@ -286,7 +282,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=11"></script>
-  <script src="./app.js?v=11"></script>
+  <script src="./cipher.js?v=12"></script>
+  <script src="./app.js?v=12"></script>
 </body>
 </html>
