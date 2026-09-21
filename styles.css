@@ -131,6 +131,8 @@ h3{font-size:1.05rem}
 .field-group{margin-bottom:16px}
 .creator-key-defaults{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .creator-key-defaults .field-group{margin-bottom:8px}
+.creator-controls .inline-option{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-weight:700}
+.creator-controls .inline-option input{width:auto;min-height:0;margin:0;accent-color:var(--ink)}
 .field-note,.status-line{color:var(--muted);font-size:.82rem;line-height:1.45;margin-top:6px}
 .creator-actions{display:flex;gap:10px;flex-wrap:wrap}
 .share-panel p{color:var(--muted);line-height:1.55}
