@@ -35,3 +35,20 @@ Challenges begin at 100 points. Optional hints subtract points based on how much
 - `.github/workflows/pages.yml` — GitHub Pages deployment
 
 No build step or backend is required.
+
+
+## Deployment
+
+### GitHub Pages
+
+GitHub requires a repository owner to enable Pages once before the workflow can publish a brand-new repository.
+
+1. Open **Settings → Pages** in this repository.
+2. Under **Build and deployment**, choose **GitHub Actions** as the source.
+3. Re-run the **Deploy Stitcher to GitHub Pages** workflow.
+
+After that, pushes to `main` deploy automatically.
+
+### Vercel
+
+This is also a zero-build static site. Import this GitHub repository into Vercel and leave the build command/output directory at their static defaults. `vercel.json` is included.
