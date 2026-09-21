@@ -22,8 +22,6 @@
   const resultShare = $('#result-share');
   const shareResultButton = $('#share-result');
   const shareResultStatus = $('#share-result-status');
-  const markBits = $('#mark-bits');
-  const revealBits = $('#reveal-bits');
   const annotateHue = $('#annotate-hue');
   const annotateShade = $('#annotate-shade');
   const clearAnnotations = $('#clear-annotations');
@@ -49,9 +47,8 @@
   let challengeLengths = {line:0,color:0};
   let creatorKeys = [];
   let annotationMode = 'hue';
-  let assistMode = 'mark';
   let annotationState = [];
-  const REVEAL_COSTS = {bit:1,rotation:2,shift:4};
+  const ASSIST_COSTS = {bit:1,rotation:2,shift:4};
 
   function setColorblindMode(enabled){
     const on=Boolean(enabled);
@@ -135,7 +132,7 @@
       v:makeMatrix(6,5),
       hue:makeMatrix(5,5),
       shade:makeMatrix(5,5),
-      revealed:{
+      counted:{
         h:createBoolMatrix(6,5),
         v:createBoolMatrix(6,5),
         hue:createBoolMatrix(5,5),
@@ -149,7 +146,7 @@
   }
 
   function calculateMaximumScore(lineLength,colorLength,gridCount){
-    return Math.max(0,(Number(lineLength)||0)*5+(Number(colorLength)||0)*5+(Number(gridCount)||0)*(REVEAL_COSTS.rotation+REVEAL_COSTS.shift));
+    return Math.max(0,(Number(lineLength)||0)*5+(Number(colorLength)||0)*5+(Number(gridCount)||0)*(ASSIST_COSTS.rotation+ASSIST_COSTS.shift));
   }
 
   function bitBelongsToMessage(index,kind,r,c){
@@ -176,14 +173,6 @@
     updateScore();
   }
 
-  function truePuzzleBit(index,kind,r,c){
-    const grid=C.gridFromPayloadGrid(activeChallenge.grids[index]);
-    if(kind==='h') return grid.hBits[r][c];
-    if(kind==='v') return grid.vBits[c][r];
-    if(kind==='hue') return grid.rowBits[r][c];
-    if(kind==='shade') return grid.colBits[c][r];
-    return null;
-  }
 
   function cycleBit(value){
     return value===null ? 0 : value===0 ? 1 : null;
@@ -262,8 +251,6 @@
       text.textContent=value===null?'':String(value);
       bg.setAttribute('visibility',value===null?'hidden':'visible');
       target.classList.toggle('marked',value!==null);
-      const revealed=kind==='h' ? state.revealed.h[r][c] : state.revealed.v[c][r];
-      target.classList.toggle('revealed',revealed);
     });
 
     card.querySelectorAll('.cell-annotation-target').forEach(target=>{
@@ -277,8 +264,6 @@
       shadeLabel.textContent=shade===null?'':`S${shade}`;
       target.classList.toggle('has-hue-mark',hue!==null);
       target.classList.toggle('has-shade-mark',shade!==null);
-      hueLabel.classList.toggle('revealed',state.revealed.hue[r][c]);
-      shadeLabel.classList.toggle('revealed',state.revealed.shade[r][c]);
     });
 
     card.querySelectorAll('.decoded-symbol').forEach(chip=>{
@@ -303,24 +288,16 @@
         const r=Number(lineTarget.dataset.r);
         const c=Number(lineTarget.dataset.c);
         const state=annotationState[index];
-        const revealed=kind==='h' ? state.revealed.h[r][c] : state.revealed.v[c][r];
+        const counted=kind==='h' ? state.counted.h[r][c] : state.counted.v[c][r];
 
-        if(assistMode==='reveal'){
-          if(!revealed){
-            const value=truePuzzleBit(index,kind,r,c);
-            if(kind==='h'){
-              state.h[r][c]=value;
-              state.revealed.h[r][c]=true;
-            }else{
-              state.v[c][r]=value;
-              state.revealed.v[c][r]=true;
-            }
-            if(bitBelongsToMessage(index,kind,r,c)) spendPoints(REVEAL_COSTS.bit);
-          }
-        }else if(!revealed){
-          if(kind==='h') state.h[r][c]=cycleBit(state.h[r][c]);
-          else state.v[c][r]=cycleBit(state.v[c][r]);
+        if(!counted && bitBelongsToMessage(index,kind,r,c)){
+          if(kind==='h') state.counted.h[r][c]=true;
+          else state.counted.v[c][r]=true;
+          spendPoints(ASSIST_COSTS.bit);
         }
+
+        if(kind==='h') state.h[r][c]=cycleBit(state.h[r][c]);
+        else state.v[c][r]=cycleBit(state.v[c][r]);
 
         syncAnnotationCard(card,index);
         return;
@@ -333,31 +310,18 @@
         const kind=annotationMode==='shade'?'shade':'hue';
         const state=annotationState[index];
         const bucket=kind==='shade'?state.shade:state.hue;
-        const revealed=state.revealed[kind][r][c];
 
-        if(assistMode==='reveal'){
-          if(!revealed){
-            bucket[r][c]=truePuzzleBit(index,kind,r,c);
-            state.revealed[kind][r][c]=true;
-            if(bitBelongsToMessage(index,kind,r,c)) spendPoints(REVEAL_COSTS.bit);
-          }
-        }else if(!revealed){
-          bucket[r][c]=cycleBit(bucket[r][c]);
+        if(!state.counted[kind][r][c] && bitBelongsToMessage(index,kind,r,c)){
+          state.counted[kind][r][c]=true;
+          spendPoints(ASSIST_COSTS.bit);
         }
 
+        bucket[r][c]=cycleBit(bucket[r][c]);
         syncAnnotationCard(card,index);
       }
     });
   }
 
-  function setAssistMode(mode){
-    assistMode=mode==='reveal'?'reveal':'mark';
-    markBits.classList.toggle('active',assistMode==='mark');
-    revealBits.classList.toggle('active',assistMode==='reveal');
-    markBits.setAttribute('aria-pressed',String(assistMode==='mark'));
-    revealBits.setAttribute('aria-pressed',String(assistMode==='reveal'));
-    challengeGrids.dataset.assistMode=assistMode;
-  }
 
   function setAnnotationMode(mode){
     annotationMode=mode==='shade'?'shade':'hue';
@@ -373,7 +337,7 @@
       ['h','v','hue','shade'].forEach(kind=>{
         for(let r=0;r<state[kind].length;r++){
           for(let c=0;c<state[kind][r].length;c++){
-            if(!state.revealed[kind][r][c]) state[kind][r][c]=null;
+            state[kind][r][c]=null;
           }
         }
       });
@@ -425,13 +389,13 @@
       const rotationButton=document.createElement('button');
       rotationButton.type='button';
       rotationButton.className='grid-assist-button';
-      rotationButton.textContent=`Reveal orientation · −${REVEAL_COSTS.rotation}`;
+      rotationButton.textContent=`Reveal orientation · −${ASSIST_COSTS.rotation}`;
       rotationButton.addEventListener('click',()=>{
         if(state.rotationRevealed) return;
-        if(!confirm(`Spend ${REVEAL_COSTS.rotation} points to reveal Grid ${index+1}'s correct orientation?`)) return;
+        if(!confirm(`Spend ${ASSIST_COSTS.rotation} points to reveal Grid ${index+1}'s correct orientation?`)) return;
         state.rotationRevealed=true;
         state.rotationGuess=C.mod(-rotation,360);
-        spendPoints(REVEAL_COSTS.rotation);
+        spendPoints(ASSIST_COSTS.rotation);
         rotationSelect.value=String(state.rotationGuess);
         rotationSelect.disabled=true;
         visual.innerHTML=C.svgMarkup(grid,0,{interactive:true});
@@ -461,13 +425,13 @@
       const shiftButton=document.createElement('button');
       shiftButton.type='button';
       shiftButton.className='grid-assist-button';
-      shiftButton.textContent=`Reveal shift · −${REVEAL_COSTS.shift}`;
+      shiftButton.textContent=`Reveal shift · −${ASSIST_COSTS.shift}`;
       shiftButton.addEventListener('click',()=>{
         if(state.shiftRevealed) return;
-        if(!confirm(`Spend ${REVEAL_COSTS.shift} points to reveal Grid ${index+1}'s color shift?`)) return;
+        if(!confirm(`Spend ${ASSIST_COSTS.shift} points to reveal Grid ${index+1}'s color shift?`)) return;
         state.shiftRevealed=true;
         state.shiftGuess=grid.shift;
-        spendPoints(REVEAL_COSTS.shift);
+        spendPoints(ASSIST_COSTS.shift);
         shiftSelect.value=String(grid.shift);
         shiftSelect.disabled=true;
         shiftButton.textContent=`Shift ${grid.shift>=0?'+':''}${grid.shift} revealed`;
@@ -678,7 +642,6 @@
     score=maxScore;
     annotationState=payload.grids.map(()=>createAnnotationState());
     setAnnotationMode('hue');
-    setAssistMode('mark');
     updateScore();
     renderHints();
 
@@ -743,18 +706,18 @@
     annotationState.forEach((state,index)=>{
       for(let r=0;r<6;r++){
         for(let c=0;c<5;c++){
-          if(state.revealed.h[r][c] && bitBelongsToMessage(index,'h',r,c)) lineBits++;
+          if(state.counted.h[r][c] && bitBelongsToMessage(index,'h',r,c)) lineBits++;
         }
       }
       for(let c=0;c<6;c++){
         for(let r=0;r<5;r++){
-          if(state.revealed.v[c][r] && bitBelongsToMessage(index,'v',r,c)) lineBits++;
+          if(state.counted.v[c][r] && bitBelongsToMessage(index,'v',r,c)) lineBits++;
         }
       }
       for(let r=0;r<5;r++){
         for(let c=0;c<5;c++){
-          if(state.revealed.hue[r][c] && bitBelongsToMessage(index,'hue',r,c)) colorBits++;
-          if(state.revealed.shade[r][c] && bitBelongsToMessage(index,'shade',r,c)) colorBits++;
+          if(state.counted.hue[r][c] && bitBelongsToMessage(index,'hue',r,c)) colorBits++;
+          if(state.counted.shade[r][c] && bitBelongsToMessage(index,'shade',r,c)) colorBits++;
         }
       }
       if(state.rotationRevealed) rotations++;
@@ -835,8 +798,6 @@
 
   colorblindToggle.addEventListener('change',()=>setColorblindMode(colorblindToggle.checked));
 
-  markBits.addEventListener('click',()=>setAssistMode('mark'));
-  revealBits.addEventListener('click',()=>setAssistMode('reveal'));
   annotateHue.addEventListener('click',()=>setAnnotationMode('hue'));
   annotateShade.addEventListener('click',()=>setAnnotationMode('shade'));
   clearAnnotations.addEventListener('click',clearAllAnnotations);
@@ -852,7 +813,6 @@
   defaultRotation.addEventListener('change',()=>buildCreator(true));
 
   setColorblindMode(initialColorblindMode());
-  setAssistMode('mark');
   setAnnotationMode('hue');
   fillReference();
   renderHints();
