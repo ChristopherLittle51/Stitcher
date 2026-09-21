@@ -109,8 +109,11 @@ body.colorblind-mode .colorblind-cell-shape,body.colorblind-mode .colorblind-shi
 .cipher-card-header strong{font-size:.95rem}
 .key-badges{display:flex;gap:6px;flex-wrap:wrap}
 .key-badge{padding:5px 8px;background:var(--paper-deep);border-radius:999px;font-size:.74rem;font-weight:800}
-.grid-assists{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
-.grid-assist-button{min-height:40px;border:1px solid rgba(19,45,77,.2);border-radius:10px;background:var(--paper);color:var(--ink);padding:7px 10px;font-size:.75rem;font-weight:800}
+.grid-assists{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 10px}
+.grid-assist-control{display:grid;grid-template-columns:1fr;gap:6px;padding:9px;border:1px solid rgba(19,45,77,.12);border-radius:12px;background:var(--paper)}
+.grid-assist-control label{font-size:.72rem;font-weight:900;color:var(--muted)}
+.grid-assist-control select{width:100%;min-height:40px;padding:8px 9px;font-size:.8rem}
+.grid-assist-button{min-height:40px;border:1px solid rgba(19,45,77,.2);border-radius:10px;background:var(--card);color:var(--ink);padding:7px 10px;font-size:.75rem;font-weight:800}
 .grid-assist-button:disabled{cursor:default;background:var(--paper-deep);color:var(--muted);border-style:solid}
 .annotation-worksheet{display:grid;gap:7px;margin-top:10px;padding-top:12px;border-top:1px solid rgba(19,45,77,.12)}
 .decoded-group{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:center}
