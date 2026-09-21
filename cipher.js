@@ -17,16 +17,22 @@
   ];
   const SHIFTS = [-5,-4,-3,-2,-1,0,1,2,3,4,5,6];
   const ROTATIONS = [0,90,180,270];
+  const CELL_SHAPES = [
+    {bits:'00',name:'Circle',hue:0,shade:0},
+    {bits:'01',name:'Square',hue:0,shade:1},
+    {bits:'10',name:'Triangle',hue:1,shade:0},
+    {bits:'11',name:'Diamond',hue:1,shade:1}
+  ];
   const HINTS = [
     {id:1,title:'Think Binary',cost:5,text:'Every meaningful choice in the pattern can ultimately be reduced to 0 or 1.'},
     {id:2,title:'Groups of Five',cost:7,text:'Look for information arranged in groups of five. Five binary values are enough to represent one symbol.'},
     {id:3,title:'More Than One Message',cost:8,text:'The stitching and the filled squares are not just two ways of drawing the same information.'},
     {id:4,title:'Read the Grid Lines',cost:10,text:'Treat each individual segment between two neighboring intersections as a bit. A stitch and a gap represent opposite values.'},
     {id:5,title:'Split the Stitch Layer',cost:10,text:'Horizontal stitch lines and vertical stitch lines are read separately. Each complete line contains five bits.'},
-    {id:6,title:'Split the Color Layer',cost:12,text:'Color contains two independent properties. Read hue in one direction and light/dark shade in the other.'},
+    {id:6,title:'Split the Color Layer',cost:12,text:'Color contains two independent properties. Read hue in one direction and light/dark shade in the other. The accessibility shapes carry the same two bits: circle=00, square=01, triangle=10, diamond=11.'},
     {id:7,title:'The Dot Matters',cost:13,text:'The corner marker tells you how the grid is oriented. Rotate the pattern until the marked corner is back where it belongs before decoding.'},
-    {id:8,title:'The Colors Are a Key',cost:15,text:'The complementary hue pair changes the decoded symbols. Blue/orange is the neutral pair, and moving around the color wheel changes the value.'},
-    {id:9,title:'Exact Shift Rule',cost:12,text:'Blue/orange = 0. Each color-wheel step clockwise from blue is +1 and each step counterclockwise is −1. Reverse that shift modulo 32 when decoding.'},
+    {id:8,title:'The Colors Are a Key',cost:15,text:'The complementary hue pair changes the decoded symbols. Blue/orange is the neutral pair, and moving around the color wheel changes the value. The small pip around the orientation marker is a color-independent copy of that wheel position.'},
+    {id:9,title:'Exact Shift Rule',cost:12,text:'Blue/orange = 0. Each color-wheel step clockwise from blue is +1 and each step counterclockwise is −1. Reverse that shift modulo 32 when decoding. On the accessibility marker, shift 0 places the small pip at 12 o’clock; each +1 moves it 30° clockwise and each −1 moves it 30° counterclockwise.'},
     {id:10,title:'Full Alphabet',cost:8,text:"Use A=00000, B=00001, C=00010 … Z=11001, then SPACE, period, comma, apostrophe, question mark, and ESC through 11111."}
   ];
 
@@ -51,6 +57,30 @@
       '10':lighten(b.hex,.56),
       '11':b.hex
     };
+  }
+
+  function cellStateShapeMarkup(hue,shade,cx,cy){
+    const key=`${hue}${shade}`;
+    const stroke='#173b70';
+    if(key==='00'){
+      return `<circle cx="${cx}" cy="${cy}" r="8" fill="none" stroke="${stroke}" stroke-width="2.4" opacity=".82"/>`;
+    }
+    if(key==='01'){
+      return `<rect x="${cx-8}" y="${cy-8}" width="16" height="16" rx="1.5" fill="none" stroke="${stroke}" stroke-width="2.4" opacity=".82"/>`;
+    }
+    if(key==='10'){
+      return `<polygon points="${cx},${cy-9} ${cx-9},${cy+8} ${cx+9},${cy+8}" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linejoin="round" opacity=".82"/>`;
+    }
+    return `<polygon points="${cx},${cy-10} ${cx-10},${cy} ${cx},${cy+10} ${cx+10},${cy}" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linejoin="round" opacity=".82"/>`;
+  }
+
+  function shiftAngle(shift){
+    return -90 + mod(shift,12)*30;
+  }
+
+  function shiftPipPoint(shift,cx,cy,radius=15){
+    const q=shiftAngle(shift)*Math.PI/180;
+    return {x:cx+Math.cos(q)*radius,y:cy+Math.sin(q)*radius};
   }
 
   function sanitize(raw){
@@ -123,7 +153,10 @@
         const hue=grid.rowBits[r][c];
         const shade=grid.colBits[c][r];
         const fill=colors[`${hue}${shade}`];
+        const cellX=pad+c*step+step/2;
+        const cellY=pad+r*step+step/2;
         inner += `<rect x="${pad+c*step+2}" y="${pad+r*step+2}" width="${step-4}" height="${step-4}" rx="2" fill="${fill}"/>`;
+        inner += cellStateShapeMarkup(hue,shade,cellX,cellY);
       }
     }
 
@@ -157,8 +190,11 @@
       }
     }
 
-    const dot=rotatePoint(pad-19,pad-19,cx,cy,rotation);
-    return `<svg viewBox="0 0 ${total} ${total}" role="img" aria-label="Stitch cipher grid"><g transform="rotate(${rotation} ${cx} ${cy})">${inner}</g><circle cx="${dot.x}" cy="${dot.y}" r="9" fill="${hue0(grid.shift).hex}" stroke="#173b70" stroke-width="2"/></svg>`;
+    const markerCanonical={x:pad-19,y:pad-19};
+    const pipCanonical=shiftPipPoint(grid.shift,markerCanonical.x,markerCanonical.y,15);
+    const dot=rotatePoint(markerCanonical.x,markerCanonical.y,cx,cy,rotation);
+    const pip=rotatePoint(pipCanonical.x,pipCanonical.y,cx,cy,rotation);
+    return `<svg viewBox="0 0 ${total} ${total}" role="img" aria-label="Stitch cipher grid"><g transform="rotate(${rotation} ${cx} ${cy})">${inner}</g><circle cx="${dot.x}" cy="${dot.y}" r="9" fill="${hue0(grid.shift).hex}" stroke="#173b70" stroke-width="2"/><circle cx="${pip.x}" cy="${pip.y}" r="3.4" fill="#173b70" stroke="#fffdf8" stroke-width="1.2"/></svg>`;
   }
 
   function bytesToBase64Url(bytes){
@@ -255,8 +291,8 @@
   }
 
   window.StitcherCipher = {
-    ALPHABET,INDEX,WHEEL,SHIFTS,ROTATIONS,HINTS,
-    mod,hue0,hue1,colorsFor,sanitize,normalizeAnswer,
+    ALPHABET,INDEX,WHEEL,SHIFTS,ROTATIONS,CELL_SHAPES,HINTS,
+    mod,hue0,hue1,colorsFor,cellStateShapeMarkup,shiftAngle,shiftPipPoint,sanitize,normalizeAnswer,
     charIndex,shiftedIndex,bitsFor,shiftedChar,bitsToValue,valueToBits,
     segment,requiredGridCount,encodeGrid,svgMarkup,
     encodePayload,decodePayload,buildChallenge,gridFromPayloadGrid,
