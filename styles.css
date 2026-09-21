@@ -110,11 +110,32 @@ body.colorblind-mode .colorblind-cell-shape,body.colorblind-mode .colorblind-shi
 .key-badges{display:flex;gap:6px;flex-wrap:wrap}
 .key-badge{padding:5px 8px;background:var(--paper-deep);border-radius:999px;font-size:.74rem;font-weight:800}
 .grid-assists{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 10px}
-.grid-assist-control{display:grid;grid-template-columns:1fr;gap:6px;padding:9px;border:1px solid rgba(19,45,77,.12);border-radius:12px;background:var(--paper)}
-.grid-assist-control label{font-size:.72rem;font-weight:900;color:var(--muted)}
-.grid-assist-control select{width:100%;min-height:40px;padding:8px 9px;font-size:.8rem}
+.grid-assist-control{display:grid;gap:9px;padding:10px;border:1px solid rgba(19,45,77,.12);border-radius:14px;background:var(--paper)}
+.visual-control-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.visual-control-heading strong{font-size:.82rem}
+.visual-control-heading span{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .grid-assist-button{min-height:40px;border:1px solid rgba(19,45,77,.2);border-radius:10px;background:var(--card);color:var(--ink);padding:7px 10px;font-size:.75rem;font-weight:800}
 .grid-assist-button:disabled{cursor:default;background:var(--paper-deep);color:var(--muted);border-style:solid}
+.rotation-stage{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px}
+.rotation-step-button{width:48px;height:48px;border:1px solid rgba(19,45,77,.2);border-radius:50%;background:var(--card);color:var(--ink);font-size:1.55rem;font-weight:900;line-height:1}
+.rotation-step-button:disabled{opacity:.45;cursor:default}
+.rotation-preview{position:relative;width:74px;height:74px;margin:auto;border:3px solid var(--ink);border-radius:8px;background:var(--card)}
+.rotation-preview-dot{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--accent-2);transform:translate(-50%,-50%)}
+.rotation-preview[data-rotation="0"] .rotation-preview-dot{left:0;top:0}
+.rotation-preview[data-rotation="90"] .rotation-preview-dot{left:100%;top:0}
+.rotation-preview[data-rotation="180"] .rotation-preview-dot{left:100%;top:100%}
+.rotation-preview[data-rotation="270"] .rotation-preview-dot{left:0;top:100%}
+.rotation-readout{position:absolute;inset:0;display:grid;place-items:center;font-size:.78rem;font-weight:900;color:var(--muted)}
+.solver-color-wheel-wrap{display:grid;place-items:center;min-height:176px}
+.solver-color-wheel{width:min(100%,180px);height:auto;overflow:visible}
+.color-wheel-sector{cursor:pointer;stroke:var(--card);stroke-width:1.5;transition:filter .12s ease,stroke-width .12s ease}
+.color-wheel-sector:hover,.color-wheel-sector:focus{filter:brightness(1.08);outline:none}
+.color-wheel-sector.selected{stroke:var(--ink);stroke-width:4}
+.color-wheel-label{pointer-events:none;fill:var(--ink);font:800 8px ui-monospace,SFMono-Regular,Menlo,monospace}
+.color-wheel-center{fill:var(--card);stroke:rgba(19,45,77,.2);stroke-width:1.5}
+.color-wheel-center-label{pointer-events:none;fill:var(--muted);font:800 7px ui-sans-serif,system-ui,sans-serif;letter-spacing:.08em}
+.color-wheel-center-value{pointer-events:none;fill:var(--ink);font:900 15px ui-monospace,SFMono-Regular,Menlo,monospace}
+.color-wheel-diameter{pointer-events:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round}
 .annotation-worksheet{display:grid;gap:7px;margin-top:10px;padding-top:12px;border-top:1px solid rgba(19,45,77,.12)}
 .decoded-group{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:center}
 .decoded-group-label{font-size:.72rem;font-weight:800;color:var(--muted)}
@@ -227,7 +248,8 @@ footer{
   .annotation-mode{flex:1}
   .annotation-mode-button{flex:1}
   .decoded-group{grid-template-columns:68px 1fr}
-  .grid-assists{grid-template-columns:1fr 1fr;margin-left:8px;margin-right:8px}
+  .grid-assists{grid-template-columns:1fr;margin-left:8px;margin-right:8px}
+  .solver-color-wheel{width:190px;max-width:100%}
   .score-cost-grid{grid-template-columns:1fr}
   .main-nav{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}
   .nav-button{padding:9px 7px}
