@@ -38,8 +38,8 @@
   let creatorKeys = [];
 
   function switchView(name, options={}){
-    if(name==='rules' && activeChallenge && score>0 && !options.force){
-      const ok = confirm('The Rules page contains the full cipher key. Opening it will set this challenge score to 0. Continue?');
+    if(name!=='play' && activeChallenge && score>0 && !options.force){
+      const ok = confirm('Leaving the scored solver exposes cipher mechanics. Continuing will set this challenge score to 0. Continue?');
       if(!ok) return;
       usedHints = new Set(C.HINTS.map(h=>h.id));
       score = 0;
