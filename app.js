@@ -41,7 +41,9 @@
 
   let activeChallenge = null;
   let usedHints = new Set();
-  let score = 100;
+  let score = 0;
+  let maxScore = 0;
+  let challengeLengths = {line:0,color:0};
   let creatorKeys = [];
   let annotationMode = 'hue';
   let assistMode = 'mark';
@@ -139,6 +141,29 @@
       rotationRevealed:false,
       shiftRevealed:false
     };
+  }
+
+  function calculateMaximumScore(lineLength,colorLength,gridCount){
+    return Math.max(0,(Number(lineLength)||0)*5+(Number(colorLength)||0)*5+(Number(gridCount)||0)*(REVEAL_COSTS.rotation+REVEAL_COSTS.shift));
+  }
+
+  function bitBelongsToMessage(index,kind,r,c){
+    let charIndex=-1;
+    let length=0;
+    if(kind==='h'){
+      charIndex=index*12+r;
+      length=challengeLengths.line;
+    }else if(kind==='v'){
+      charIndex=index*12+6+c;
+      length=challengeLengths.line;
+    }else if(kind==='hue'){
+      charIndex=index*10+r;
+      length=challengeLengths.color;
+    }else if(kind==='shade'){
+      charIndex=index*10+5+c;
+      length=challengeLengths.color;
+    }
+    return charIndex>=0 && charIndex<length;
   }
 
   function spendPoints(cost){
@@ -276,7 +301,7 @@
               state.v[c][r]=value;
               state.revealed.v[c][r]=true;
             }
-            spendPoints(REVEAL_COSTS.bit);
+            if(bitBelongsToMessage(index,kind,r,c)) spendPoints(REVEAL_COSTS.bit);
           }
         }else if(!revealed){
           if(kind==='h') state.h[r][c]=cycleBit(state.h[r][c]);
@@ -300,7 +325,7 @@
           if(!revealed){
             bucket[r][c]=truePuzzleBit(index,kind,r,c);
             state.revealed[kind][r][c]=true;
-            spendPoints(REVEAL_COSTS.bit);
+            if(bitBelongsToMessage(index,kind,r,c)) spendPoints(REVEAL_COSTS.bit);
           }
         }else if(!revealed){
           bucket[r][c]=cycleBit(bucket[r][c]);
@@ -470,7 +495,8 @@
       creatorGrids.appendChild(createCipherCard(grid,i,key.rotation,{creator:true,key}));
     }
 
-    previewSummary.textContent=`${count} grid${count===1?'':'s'} · line capacity ${count*12} · color capacity ${count*10}`;
+    const theoreticalMax=calculateMaximumScore(line.length,color.length,count);
+    previewSummary.textContent=`${count} grid${count===1?'':'s'} · line capacity ${count*12} · color capacity ${count*10} · max score ${theoreticalMax}`;
     creatorStatus.textContent='Puzzle preview updated.';
     shareOutput.hidden=true;
   }
@@ -520,17 +546,18 @@
     }
   }
 
-  function rankForScore(value){
-    if(value>=90) return 'Master Decoder';
-    if(value>=75) return 'Codebreaker';
-    if(value>=50) return 'Pattern Hunter';
-    if(value>=25) return 'Persistent Solver';
-    if(value>=1) return 'Made It Out Alive';
+  function rankForScore(value,maximum){
+    const pct=maximum>0 ? value/maximum*100 : 0;
+    if(pct>=90) return 'Master Decoder';
+    if(pct>=75) return 'Codebreaker';
+    if(pct>=50) return 'Pattern Hunter';
+    if(pct>=25) return 'Persistent Solver';
+    if(value>0) return 'Made It Out Alive';
     return 'Tutorial Complete';
   }
 
   function updateScore(){
-    scoreValue.textContent=String(score);
+    scoreValue.textContent=`${score} / ${maxScore}`;
     pointsLeft.textContent='Free';
   }
 
@@ -580,7 +607,13 @@
     if(!payload || payload.v!==1 || !Array.isArray(payload.grids)) throw new Error('Unsupported challenge data.');
     activeChallenge=payload;
     usedHints=new Set();
-    score=100;
+    const decoded=C.decodeChallengeMessages(payload);
+    challengeLengths={
+      line:Number.isFinite(Number(payload.lineLength))?Number(payload.lineLength):decoded.line.length,
+      color:Number.isFinite(Number(payload.colorLength))?Number(payload.colorLength):decoded.color.length
+    };
+    maxScore=calculateMaximumScore(challengeLengths.line,challengeLengths.color,payload.grids.length);
+    score=maxScore;
     annotationState=payload.grids.map(()=>createAnnotationState());
     setAnnotationMode('hue');
     setAssistMode('mark');
@@ -627,7 +660,7 @@
     colorResult.className='answer-result '+(colorOK?'good':'bad');
 
     if(lineOK && colorOK){
-      finalResult.textContent=`Solved! ${score}/100 — ${rankForScore(score)}.`;
+      finalResult.textContent=`Solved! ${score}/${maxScore} — ${rankForScore(score,maxScore)}.`;
       finalResult.style.color='var(--good)';
     }else{
       finalResult.textContent='Keep going — both messages must be correct to finish.';
