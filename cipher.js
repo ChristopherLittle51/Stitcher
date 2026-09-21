@@ -24,16 +24,16 @@
     {bits:'11',name:'Diamond',hue:1,shade:1}
   ];
   const HINTS = [
-    {id:1,title:'Think Binary',cost:5,text:'Every meaningful choice in the pattern can ultimately be reduced to 0 or 1.'},
-    {id:2,title:'Groups of Five',cost:7,text:'Look for information arranged in groups of five. Five binary values are enough to represent one symbol.'},
-    {id:3,title:'More Than One Message',cost:8,text:'The stitching and the filled squares are not just two ways of drawing the same information.'},
-    {id:4,title:'Read the Grid Lines',cost:10,text:'Treat each individual segment between two neighboring intersections as a bit. A stitch and a gap represent opposite values.'},
-    {id:5,title:'Split the Stitch Layer',cost:10,text:'Horizontal stitch lines and vertical stitch lines are read separately. Each complete line contains five bits.'},
-    {id:6,title:'Split the Color Layer',cost:12,text:'Color contains two independent properties. Read hue in one direction and light/dark shade in the other. The accessibility shapes carry the same two bits: circle=00, square=01, triangle=10, diamond=11.'},
-    {id:7,title:'The Dot Matters',cost:13,text:'The corner marker tells you how the grid is oriented. Rotate the pattern until the marked corner is back where it belongs before decoding.'},
-    {id:8,title:'The Colors Are a Key',cost:15,text:'The complementary hue pair changes the decoded symbols. Blue/orange is the neutral pair, and moving around the color wheel changes the value. The small pip around the orientation marker is a color-independent copy of that wheel position.'},
-    {id:9,title:'Exact Shift Rule',cost:12,text:'Blue/orange = 0. Each color-wheel step clockwise from blue is +1 and each step counterclockwise is −1. Reverse that shift modulo 32 when decoding. On the accessibility marker, shift 0 places the small pip at 12 o’clock; each +1 moves it 30° clockwise and each −1 moves it 30° counterclockwise.'},
-    {id:10,title:'Full Alphabet',cost:8,text:"Use A=00000, B=00001, C=00010 … Z=11001, then SPACE, period, comma, apostrophe, question mark, and ESC through 11111."}
+    {id:1,title:'Think Binary',cost:0,text:'Every meaningful choice in the pattern can ultimately be reduced to 0 or 1.'},
+    {id:2,title:'Groups of Five',cost:0,text:'Look for information arranged in groups of five. Five binary values are enough to represent one symbol.'},
+    {id:3,title:'More Than One Message',cost:0,text:'The stitching and the filled squares are not just two ways of drawing the same information.'},
+    {id:4,title:'Read the Grid Lines',cost:0,text:'Treat each individual segment between two neighboring intersections as a bit. A stitch and a gap represent opposite values.'},
+    {id:5,title:'Split the Stitch Layer',cost:0,text:'Horizontal stitch lines and vertical stitch lines are read separately. Each complete line contains five bits.'},
+    {id:6,title:'Split the Color Layer',cost:0,text:'Color contains two independent properties. Read hue in one direction and light/dark shade in the other. The accessibility shapes carry the same two bits: circle=00, square=01, triangle=10, diamond=11.'},
+    {id:7,title:'The Dot Matters',cost:0,text:'The corner marker tells you how the grid is oriented. Rotate the pattern until the marked corner is back where it belongs before decoding.'},
+    {id:8,title:'The Colors Are a Key',cost:0,text:'The complementary hue pair changes the decoded symbols. Blue/orange is the neutral pair, and moving around the color wheel changes the value. The small pip around the orientation marker is a color-independent copy of that wheel position.'},
+    {id:9,title:'Exact Shift Rule',cost:0,text:'Blue/orange = 0. Each color-wheel step clockwise from blue is +1 and each step counterclockwise is −1. Reverse that shift modulo 32 when decoding. On the accessibility marker, shift 0 places the small pip at 12 o’clock; each +1 moves it 30° clockwise and each −1 moves it 30° counterclockwise.'},
+    {id:10,title:'Full Alphabet',cost:0,text:"Use A=00000, B=00001, C=00010 … Z=11001, then SPACE, period, comma, apostrophe, question mark, and ESC through 11111."}
   ];
 
   const mod = (n,m) => ((n % m) + m) % m;
