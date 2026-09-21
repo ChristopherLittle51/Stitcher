@@ -48,6 +48,22 @@
           </div>
         </section>
 
+        <section class="annotation-toolbar panel" aria-label="Puzzle annotation controls">
+          <div>
+            <strong>Tap-to-decode worksheet</strong>
+            <p>Tap any stitch segment or gap to cycle ? → 0 → 1. For colored squares, choose whether you are marking the hue bit or shade bit.</p>
+          </div>
+          <div class="annotation-actions">
+            <div class="annotation-mode" role="group" aria-label="Square annotation mode">
+              <button id="annotate-hue" class="annotation-mode-button active" type="button" aria-pressed="true">Hue bits</button>
+              <button id="annotate-shade" class="annotation-mode-button" type="button" aria-pressed="false">Shade bits</button>
+            </div>
+            <button id="clear-annotations" class="secondary-button" type="button">Clear marks</button>
+          </div>
+        </section>
+
+        <p class="annotation-note">Completed groups show the direct 5-bit alphabet symbol <strong>before</strong> reversing the grid's color-wheel shift.</p>
+
         <div id="challenge-grids" class="grid-gallery" aria-live="polite"></div>
 
         <section class="solve-layout">
@@ -249,7 +265,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=4"></script>
-  <script src="./app.js?v=4"></script>
+  <script src="./cipher.js?v=5"></script>
+  <script src="./app.js?v=5"></script>
 </body>
 </html>
