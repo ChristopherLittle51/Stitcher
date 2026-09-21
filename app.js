@@ -210,7 +210,7 @@
       const payload=await C.buildChallenge(creatorTitle.value,creatorLines.value,creatorColors.value,creatorKeys);
       const encoded=C.encodePayload(payload);
       const base=location.href.split('#')[0];
-      shareUrl.value=`${base}#challenge=${encoded}`;
+      shareUrl.value=`${base}#c=${encoded}`;
       shareOutput.hidden=false;
       copyStatus.textContent='';
       creatorStatus.textContent='Challenge link generated.';
@@ -343,8 +343,9 @@
   }
 
   function readChallengeFromHash(){
-    const prefix='#challenge=';
-    if(!location.hash.startsWith(prefix)) return false;
+    const prefixes=['#c=','#challenge='];
+    const prefix=prefixes.find(value=>location.hash.startsWith(value));
+    if(!prefix) return false;
     try{
       const payload=C.decodePayload(location.hash.slice(prefix.length));
       loadChallenge(payload);
