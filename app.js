@@ -22,8 +22,6 @@
   const resultShare = $('#result-share');
   const shareResultButton = $('#share-result');
   const shareResultStatus = $('#share-result-status');
-  const annotateHue = $('#annotate-hue');
-  const annotateShade = $('#annotate-shade');
   const clearAnnotations = $('#clear-annotations');
   const colorblindToggle = $('#colorblind-mode');
 
@@ -325,10 +323,11 @@
 
   function setAnnotationMode(mode){
     annotationMode=mode==='shade'?'shade':'hue';
-    annotateHue.classList.toggle('active',annotationMode==='hue');
-    annotateShade.classList.toggle('active',annotationMode==='shade');
-    annotateHue.setAttribute('aria-pressed',String(annotationMode==='hue'));
-    annotateShade.setAttribute('aria-pressed',String(annotationMode==='shade'));
+    challengeGrids.querySelectorAll('.grid-annotation-mode-button').forEach(button=>{
+      const active=button.dataset.mode===annotationMode;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
     challengeGrids.dataset.annotationMode=annotationMode;
   }
 
@@ -390,12 +389,33 @@
         syncAnnotationCard(card,index);
       };
 
+      const modeControl=document.createElement('div');
+      modeControl.className='compact-mode-control';
+      modeControl.setAttribute('role','group');
+      modeControl.setAttribute('aria-label','Color cell bit mode');
+
+      const hueButton=document.createElement('button');
+      hueButton.type='button';
+      hueButton.className='grid-annotation-mode-button';
+      hueButton.dataset.mode='hue';
+      hueButton.textContent='Hue';
+      hueButton.setAttribute('aria-pressed',String(annotationMode==='hue'));
+      hueButton.classList.toggle('active',annotationMode==='hue');
+      hueButton.addEventListener('click',()=>setAnnotationMode('hue'));
+
+      const shadeButton=document.createElement('button');
+      shadeButton.type='button';
+      shadeButton.className='grid-annotation-mode-button';
+      shadeButton.dataset.mode='shade';
+      shadeButton.textContent='Shade';
+      shadeButton.setAttribute('aria-pressed',String(annotationMode==='shade'));
+      shadeButton.classList.toggle('active',annotationMode==='shade');
+      shadeButton.addEventListener('click',()=>setAnnotationMode('shade'));
+
+      modeControl.append(hueButton,shadeButton);
+
       const rotationControl=document.createElement('div');
       rotationControl.className='grid-assist-control rotation-control';
-
-      const rotationHeading=document.createElement('div');
-      rotationHeading.className='visual-control-heading';
-      rotationHeading.innerHTML='<strong>Rotation</strong><span>−2 on first turn</span>';
 
       const rotationStage=document.createElement('div');
       rotationStage.className='rotation-stage';
@@ -437,14 +457,10 @@
       rotateRight.addEventListener('click',()=>turnRotation(90));
       rotationStage.append(rotateLeft,rotationPreview,rotateRight);
 
-      rotationControl.append(rotationHeading,rotationStage);
+      rotationControl.append(rotationStage);
 
       const shiftControl=document.createElement('div');
       shiftControl.className='grid-assist-control color-wheel-control';
-
-      const shiftHeading=document.createElement('div');
-      shiftHeading.className='visual-control-heading';
-      shiftHeading.innerHTML='<strong>Color offset</strong><span>−4 on first move</span>';
 
       const wheelWrap=document.createElement('div');
       wheelWrap.className='solver-color-wheel-wrap';
@@ -463,7 +479,7 @@
         const value=signedWheelShift(i);
         const angle=-90+i*30;
         const sector=document.createElementNS('http://www.w3.org/2000/svg','path');
-        sector.setAttribute('d',wheelSectorPath(90,90,33,64,angle-14.5,angle+14.5));
+        sector.setAttribute('d',wheelSectorPath(90,90,46,78,angle-14.5,angle+14.5));
         sector.setAttribute('fill',C.hue0(value).hex);
         sector.setAttribute('class','color-wheel-sector');
         sector.dataset.shift=String(value);
@@ -473,7 +489,7 @@
         sectorEls.push(sector);
         wheel.appendChild(sector);
 
-        const labelPoint=polarPoint(90,90,76,angle);
+        const labelPoint=polarPoint(90,90,84,angle);
         const label=document.createElementNS('http://www.w3.org/2000/svg','text');
         label.setAttribute('x',labelPoint.x.toFixed(2));
         label.setAttribute('y',(labelPoint.y+3.5).toFixed(2));
@@ -486,7 +502,7 @@
       const center=document.createElementNS('http://www.w3.org/2000/svg','circle');
       center.setAttribute('cx','90');
       center.setAttribute('cy','90');
-      center.setAttribute('r','27');
+      center.setAttribute('r','39');
       center.setAttribute('class','color-wheel-center');
       wheel.appendChild(center);
 
@@ -526,8 +542,8 @@
         });
         centerValue.textContent=state.shiftGuess>=0?`+${state.shiftGuess}`:String(state.shiftGuess);
         const angle=C.shiftAngle(state.shiftGuess);
-        const p1=polarPoint(90,90,61,angle);
-        const p2=polarPoint(90,90,61,angle+180);
+        const p1=polarPoint(90,90,75,angle);
+        const p2=polarPoint(90,90,75,angle+180);
         selectedLine.setAttribute('x1',p1.x.toFixed(2));
         selectedLine.setAttribute('y1',p1.y.toFixed(2));
         selectedLine.setAttribute('x2',p2.x.toFixed(2));
@@ -546,9 +562,9 @@
 
       wheelWrap.appendChild(wheel);
 
-      shiftControl.append(shiftHeading,wheelWrap);
+      shiftControl.append(wheelWrap);
 
-      assists.append(rotationControl,shiftControl);
+      assists.append(modeControl,rotationControl,shiftControl);
       card.insertBefore(assists,visual);
       updateRotationControl();
       updateWheelControl();
@@ -909,8 +925,6 @@
 
   colorblindToggle.addEventListener('change',()=>setColorblindMode(colorblindToggle.checked));
 
-  annotateHue.addEventListener('click',()=>setAnnotationMode('hue'));
-  annotateShade.addEventListener('click',()=>setAnnotationMode('shade'));
   clearAnnotations.addEventListener('click',clearAllAnnotations);
 
   $('#build-puzzle').addEventListener('click',()=>buildCreator(true));
