@@ -19,6 +19,9 @@
   const lineResult = $('#line-result');
   const colorResult = $('#color-result');
   const finalResult = $('#final-result');
+  const annotateHue = $('#annotate-hue');
+  const annotateShade = $('#annotate-shade');
+  const clearAnnotations = $('#clear-annotations');
 
   const creatorTitle = $('#creator-title');
   const includeTitle = $('#include-title');
@@ -37,6 +40,8 @@
   let usedHints = new Set();
   let score = 100;
   let creatorKeys = [];
+  let annotationMode = 'hue';
+  let annotationState = [];
 
   function switchView(name, options={}){
     if(name!=='play' && activeChallenge && score>0 && !options.force){
@@ -103,7 +108,155 @@
     });
   }
 
-  function createCipherCard(grid,index,rotation,{creator=false,key=null}={}){
+  function makeMatrix(rows,cols){
+    return Array.from({length:rows},()=>Array(cols).fill(null));
+  }
+
+  function createAnnotationState(){
+    return {
+      h:makeMatrix(6,5),
+      v:makeMatrix(6,5),
+      hue:makeMatrix(5,5),
+      shade:makeMatrix(5,5)
+    };
+  }
+
+  function cycleBit(value){
+    return value===null ? 0 : value===0 ? 1 : null;
+  }
+
+  function rawSymbol(bits){
+    if(bits.some(bit=>bit===null)) return null;
+    const value=parseInt(bits.join(''),2);
+    return C.ALPHABET[value] ?? null;
+  }
+
+  function symbolLabel(symbol){
+    if(symbol===null) return '—';
+    if(symbol===' ') return '␠';
+    return symbol;
+  }
+
+  function groupBits(state,kind,index){
+    if(kind==='h') return state.h[index];
+    if(kind==='v') return state.v[index];
+    if(kind==='hue') return state.hue[index];
+    if(kind==='shade') return Array.from({length:5},(_,r)=>state.shade[r][index]);
+    return [];
+  }
+
+  function createAnnotationWorksheet(index){
+    const wrap=document.createElement('section');
+    wrap.className='annotation-worksheet';
+    wrap.dataset.gridIndex=String(index);
+    const groups=[
+      ['h','Horizontal',6],
+      ['v','Vertical',6],
+      ['hue','Hue rows',5],
+      ['shade','Shade cols',5]
+    ];
+    groups.forEach(([kind,label,count])=>{
+      const row=document.createElement('div');
+      row.className='decoded-group';
+      const title=document.createElement('span');
+      title.className='decoded-group-label';
+      title.textContent=label;
+      const symbols=document.createElement('div');
+      symbols.className='decoded-symbols';
+      for(let i=0;i<count;i++){
+        const chip=document.createElement('span');
+        chip.className='decoded-symbol';
+        chip.dataset.kind=kind;
+        chip.dataset.group=String(i);
+        chip.textContent='—';
+        chip.title='Complete all five bits to reveal this raw symbol';
+        symbols.appendChild(chip);
+      }
+      row.append(title,symbols);
+      wrap.appendChild(row);
+    });
+    return wrap;
+  }
+
+  function syncAnnotationCard(card,index){
+    const state=annotationState[index];
+    if(!state) return;
+
+    card.querySelectorAll('.line-annotation-target').forEach(target=>{
+      const kind=target.dataset.kind;
+      const r=Number(target.dataset.r);
+      const c=Number(target.dataset.c);
+      const value=kind==='h' ? state.h[r][c] : state.v[c][r];
+      const bg=target.querySelector('.annotation-bit-bg');
+      const text=target.querySelector('.annotation-bit-text');
+      text.textContent=value===null?'':String(value);
+      bg.setAttribute('visibility',value===null?'hidden':'visible');
+      target.classList.toggle('marked',value!==null);
+    });
+
+    card.querySelectorAll('.cell-annotation-target').forEach(target=>{
+      const r=Number(target.dataset.r);
+      const c=Number(target.dataset.c);
+      const hue=state.hue[r][c];
+      const shade=state.shade[r][c];
+      const hueLabel=target.querySelector('[data-role="hue"]');
+      const shadeLabel=target.querySelector('[data-role="shade"]');
+      hueLabel.textContent=hue===null?'':`H${hue}`;
+      shadeLabel.textContent=shade===null?'':`S${shade}`;
+      target.classList.toggle('has-hue-mark',hue!==null);
+      target.classList.toggle('has-shade-mark',shade!==null);
+    });
+
+    card.querySelectorAll('.decoded-symbol').forEach(chip=>{
+      const bits=groupBits(state,chip.dataset.kind,Number(chip.dataset.group));
+      const symbol=rawSymbol(bits);
+      chip.textContent=symbolLabel(symbol);
+      chip.classList.toggle('complete',symbol!==null);
+      chip.title=symbol===null
+        ? 'Complete all five bits to reveal this raw symbol'
+        : `${bits.join('')} → ${symbol===' ' ? 'SPACE' : symbol}`;
+    });
+  }
+
+  function attachAnnotationInteractions(card,index){
+    card.addEventListener('click',event=>{
+      const lineTarget=event.target.closest('.line-annotation-target');
+      if(lineTarget && card.contains(lineTarget)){
+        const kind=lineTarget.dataset.kind;
+        const r=Number(lineTarget.dataset.r);
+        const c=Number(lineTarget.dataset.c);
+        if(kind==='h') annotationState[index].h[r][c]=cycleBit(annotationState[index].h[r][c]);
+        else annotationState[index].v[c][r]=cycleBit(annotationState[index].v[c][r]);
+        syncAnnotationCard(card,index);
+        return;
+      }
+
+      const cellTarget=event.target.closest('.cell-annotation-target');
+      if(cellTarget && card.contains(cellTarget)){
+        const r=Number(cellTarget.dataset.r);
+        const c=Number(cellTarget.dataset.c);
+        const bucket=annotationMode==='shade' ? annotationState[index].shade : annotationState[index].hue;
+        bucket[r][c]=cycleBit(bucket[r][c]);
+        syncAnnotationCard(card,index);
+      }
+    });
+  }
+
+  function setAnnotationMode(mode){
+    annotationMode=mode==='shade'?'shade':'hue';
+    annotateHue.classList.toggle('active',annotationMode==='hue');
+    annotateShade.classList.toggle('active',annotationMode==='shade');
+    annotateHue.setAttribute('aria-pressed',String(annotationMode==='hue'));
+    annotateShade.setAttribute('aria-pressed',String(annotationMode==='shade'));
+    challengeGrids.dataset.annotationMode=annotationMode;
+  }
+
+  function clearAllAnnotations(){
+    annotationState=annotationState.map(()=>createAnnotationState());
+    challengeGrids.querySelectorAll('.cipher-card').forEach((card,index)=>syncAnnotationCard(card,index));
+  }
+
+  function createCipherCard(grid,index,rotation,{creator=false,key=null,interactive=false}={}){
     const card=document.createElement('article');
     card.className='cipher-card';
 
@@ -113,8 +266,15 @@
     card.appendChild(header);
 
     const visual=document.createElement('div');
-    visual.innerHTML=C.svgMarkup(grid,rotation);
+    visual.innerHTML=C.svgMarkup(grid,rotation,{interactive});
     card.appendChild(visual);
+
+    if(interactive){
+      const worksheet=createAnnotationWorksheet(index);
+      card.appendChild(worksheet);
+      attachAnnotationInteractions(card,index);
+      syncAnnotationCard(card,index);
+    }
 
     if(creator && key){
       const badges=document.createElement('div');
@@ -303,6 +463,8 @@
     activeChallenge=payload;
     usedHints=new Set();
     score=100;
+    annotationState=payload.grids.map(()=>createAnnotationState());
+    setAnnotationMode('hue');
     updateScore();
     renderHints();
 
@@ -318,7 +480,7 @@
 
     payload.grids.forEach((g,i)=>{
       const grid=C.gridFromPayloadGrid(g);
-      challengeGrids.appendChild(createCipherCard(grid,i,Number(g.o||0)));
+      challengeGrids.appendChild(createCipherCard(grid,i,Number(g.o||0),{interactive:true}));
     });
 
     switchView('play',{force:true});
@@ -372,6 +534,10 @@
     }
   }
 
+  annotateHue.addEventListener('click',()=>setAnnotationMode('hue'));
+  annotateShade.addEventListener('click',()=>setAnnotationMode('shade'));
+  clearAnnotations.addEventListener('click',clearAllAnnotations);
+
   $('#build-puzzle').addEventListener('click',()=>buildCreator(true));
   $('#randomize-keys').addEventListener('click',randomizeCreatorKeys);
   $('#make-link').addEventListener('click',makeChallengeLink);
@@ -381,6 +547,7 @@
   defaultShift.addEventListener('change',()=>buildCreator(true));
   defaultRotation.addEventListener('change',()=>buildCreator(true));
 
+  setAnnotationMode('hue');
   fillReference();
   renderHints();
   updateScore();
