@@ -740,7 +740,7 @@
     const pct=maxScore>0 ? Math.round(score/maxScore*100) : 0;
     return [
       `Stitcher ✣ ${score}/${maxScore} · ${pct}%`,
-      `🧵 ${assists.lineBits} line bit${assists.lineBits===1?'':'s'} · 🎨 ${assists.colorBits} color bit${assists.colorBits===1?'':'s'}`,
+      `🧵 ${assists.lineBits} line bit${assists.lineBits===1?'':'s'} marked · 🎨 ${assists.colorBits} color bit${assists.colorBits===1?'':'s'} marked`,
       `↻ ${assists.rotations} rotation${assists.rotations===1?'':'s'} · 🌈 ${assists.shifts} shift${assists.shifts===1?'':'s'}`,
       '',
       'Can you beat my score?',
