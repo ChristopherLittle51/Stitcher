@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#183b69">
+  <meta name="description" content="Create and solve colorful stitch-grid ciphers inspired by Hitomezashi.">
+  <title>Stitcher — Grid Cipher Puzzles</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Stitcher home">
+      <span class="brand-mark" aria-hidden="true">✣</span>
+      <span>Stitcher</span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <button class="nav-button active" data-view="play">Play</button>
+      <button class="nav-button" data-view="create">Create</button>
+      <button class="nav-button" data-view="rules">Rules</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="play-view" class="view active" data-view-panel="play">
+      <div class="hero">
+        <div class="eyebrow">A two-layer visual cipher</div>
+        <h1>Read the stitches.<br>Read the colors.</h1>
+        <p class="hero-copy">Every 5×5 block can hide two separate messages at once. Solve the grid with no hints for 100 points, or spend points when you get stuck.</p>
+      </div>
+
+      <div id="challenge-empty" class="panel centered-panel">
+        <div class="panel-icon" aria-hidden="true">⌁</div>
+        <h2>No challenge loaded</h2>
+        <p>Open a challenge link from a friend, or create your own puzzle and share it.</p>
+        <button class="primary-button" data-jump="create">Create a challenge</button>
+      </div>
+
+      <div id="challenge-area" hidden>
+        <section class="challenge-heading">
+          <div>
+            <div class="eyebrow">Challenge</div>
+            <h2 id="challenge-title">Untitled puzzle</h2>
+          </div>
+          <div class="score-card">
+            <span>Score</span>
+            <strong id="score-value">100</strong>
+          </div>
+        </section>
+
+        <div id="challenge-grids" class="grid-gallery" aria-live="polite"></div>
+
+        <section class="solve-layout">
+          <div class="panel answer-panel">
+            <h3>Your solution</h3>
+            <label for="line-answer">Line / stitch message</label>
+            <textarea id="line-answer" rows="3" placeholder="Decode the 12-character-per-grid line message…"></textarea>
+            <div id="line-result" class="answer-result" aria-live="polite"></div>
+
+            <label for="color-answer">Color message</label>
+            <textarea id="color-answer" rows="3" placeholder="Decode the 10-character-per-grid color message…"></textarea>
+            <div id="color-result" class="answer-result" aria-live="polite"></div>
+
+            <button id="check-answer" class="primary-button wide-button">Check answers</button>
+            <div id="final-result" class="final-result" aria-live="polite"></div>
+          </div>
+
+          <aside class="panel hints-panel">
+            <div class="hint-heading">
+              <div>
+                <h3>Hints</h3>
+                <p>Reveal only what you need. Each hint permanently reduces your score.</p>
+              </div>
+              <span id="points-left" class="points-pill">100 pts</span>
+            </div>
+            <div id="hint-list" class="hint-list"></div>
+          </aside>
+        </section>
+      </div>
+    </section>
+
+    <section id="create-view" class="view" data-view-panel="create">
+      <div class="section-heading">
+        <div class="eyebrow">Puzzle maker</div>
+        <h1>Create a challenge</h1>
+        <p>Write two independent messages, then choose a different hue shift and rotation for every 5×5 grid.</p>
+      </div>
+
+      <div class="creator-layout">
+        <section class="panel creator-controls">
+          <div class="field-group">
+            <label for="creator-title">Challenge title</label>
+            <input id="creator-title" type="text" value="Can you decode this?" maxlength="80">
+          </div>
+
+          <div class="field-group">
+            <label for="creator-lines">Line / stitch message</label>
+            <textarea id="creator-lines" rows="4" maxlength="360">MEET ME AFTER MIDNIGHT</textarea>
+            <div class="field-note"><strong>12 characters per grid:</strong> 6 horizontal stitch letters + 6 vertical stitch letters.</div>
+          </div>
+
+          <div class="field-group">
+            <label for="creator-colors">Color message</label>
+            <textarea id="creator-colors" rows="4" maxlength="300">BRING THE KEY</textarea>
+            <div class="field-note"><strong>10 characters per grid:</strong> 5 hue-row letters + 5 shade-column letters.</div>
+          </div>
+
+          <div class="creator-actions">
+            <button id="build-puzzle" class="primary-button">Build puzzle</button>
+            <button id="randomize-keys" class="secondary-button">Randomize grid keys</button>
+          </div>
+          <div id="creator-status" class="status-line" aria-live="polite"></div>
+        </section>
+
+        <section class="panel share-panel">
+          <h3>Share it</h3>
+          <p>The challenge URL contains the rendered grid data and answer hashes, not the plaintext answers.</p>
+          <button id="make-link" class="primary-button wide-button">Generate challenge link</button>
+          <div id="share-output" hidden>
+            <label for="share-url">Challenge URL</label>
+            <textarea id="share-url" rows="4" readonly></textarea>
+            <button id="copy-link" class="secondary-button wide-button">Copy link</button>
+            <div id="copy-status" class="status-line" aria-live="polite"></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="creator-preview">
+        <div class="preview-heading">
+          <div>
+            <h2>Preview</h2>
+            <p id="preview-summary">Build the puzzle to see its grids.</p>
+          </div>
+        </div>
+        <div id="creator-grids" class="grid-gallery"></div>
+      </section>
+    </section>
+
+    <section id="rules-view" class="view" data-view-panel="rules">
+      <div class="section-heading">
+        <div class="eyebrow">Cipher key</div>
+        <h1>How Stitcher works</h1>
+        <p>This is a puzzle cipher, not serious cryptography. The goal is to reward observation and pattern recognition.</p>
+      </div>
+
+      <section class="rules-grid">
+        <article class="panel rule-card">
+          <span class="rule-number">01</span>
+          <h2>Grid geometry</h2>
+          <p>A cipher block has <strong>25 colored cells</strong> bounded by <strong>6 horizontal and 6 vertical stitch tracks</strong>. Each track has exactly five binary segments.</p>
+        </article>
+        <article class="panel rule-card">
+          <span class="rule-number">02</span>
+          <h2>Line message</h2>
+          <p>Each of the six horizontal tracks encodes one 5-bit character. Each of the six vertical tracks does the same.</p>
+          <p><strong>Stitch present = 0.</strong> Empty segment = 1.</p>
+        </article>
+        <article class="panel rule-card">
+          <span class="rule-number">03</span>
+          <h2>Color message</h2>
+          <p>Across each of five cell rows, the two hues encode five bits. Down each of five columns, light versus dark encodes another five bits.</p>
+        </article>
+        <article class="panel rule-card">
+          <span class="rule-number">04</span>
+          <h2>Rotation</h2>
+          <p>The colored dot marks the grid's original top-left. Rotate the grid until the dot is upper-left before reading it.</p>
+        </article>
+        <article class="panel rule-card">
+          <span class="rule-number">05</span>
+          <h2>Color shift</h2>
+          <p>Blue / orange is shift 0. Moving the hue pair around the 12-step color wheel changes every symbol by that signed shift modulo 32.</p>
+          <p>The orientation dot uses the grid's bit-0 hue, so its color identifies the shift.</p>
+        </article>
+        <article class="panel rule-card">
+          <span class="rule-number">06</span>
+          <h2>Two messages</h2>
+          <p>The lines and the colors are separate payloads. A grid holds 12 line characters and 10 color characters simultaneously.</p>
+        </article>
+      </section>
+
+      <section class="reference-layout">
+        <div class="panel">
+          <h2>5-bit alphabet</h2>
+          <div id="alphabet-table" class="alphabet-table"></div>
+        </div>
+        <div class="panel">
+          <h2>Color wheel shifts</h2>
+          <div id="wheel-key" class="wheel-key"></div>
+          <p class="field-note">The first hue is binary hue bit 0. Its complementary hue, six wheel steps away, is binary hue bit 1.</p>
+        </div>
+      </section>
+
+      <section class="panel scoring-rules">
+        <h2>100-point hint system</h2>
+        <p>Hints can be taken in any order. Their costs reflect how much of the puzzle mechanic they reveal.</p>
+        <div id="rules-hint-table" class="rules-hint-table"></div>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <span>Stitcher</span>
+    <span>Hitomezashi-inspired grid cipher puzzles</span>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
