@@ -251,17 +251,29 @@
     };
   }
 
-  function encodePayload(payload){
+  function encodePayload(payload,options={}){
     const grids=Array.isArray(payload.grids)?payload.grids:[];
     if(grids.length<1 || grids.length>31) throw new Error('Challenge must contain 1–31 grids.');
+
+    const includeTitle=options.includeTitle!==false;
+    const titleBytes=includeTitle
+      ? new TextEncoder().encode(String(payload.title||'Stitcher challenge').slice(0,80))
+      : new Uint8Array();
+    if(titleBytes.length>255) throw new Error('Challenge title is too long.');
 
     const lineLength=Math.min(511,Number(payload.lineLength||0));
     const colorLength=Math.min(511,Number(payload.colorLength||0));
     const fields=[
-      {value:0xe0|grids.length,bits:8},
+      {value:0xc0|grids.length,bits:8},
       {value:lineLength,bits:9},
-      {value:colorLength,bits:9}
+      {value:colorLength,bits:9},
+      {value:includeTitle?1:0,bits:1}
     ];
+
+    if(includeTitle){
+      fields.push({value:titleBytes.length,bits:8});
+      titleBytes.forEach(value=>fields.push({value,bits:8}));
+    }
 
     grids.forEach(g=>{
       const shiftIndex=SHIFTS.indexOf(Number(g.s));
@@ -274,6 +286,34 @@
     });
 
     return bytesToBase64Url(packBits(fields));
+  }
+
+  function decodeCompactV4(bytes){
+    const read=makeBitReader(bytes);
+    const header=read(8);
+    const gridCount=header&31;
+    if((header&0xe0)!==0xc0 || gridCount<1) throw new Error('Unsupported compact challenge.');
+    const lineLength=read(9);
+    const colorLength=read(9);
+    const hasTitle=read(1)===1;
+    let title='Stitcher challenge';
+
+    if(hasTitle){
+      const titleLength=read(8);
+      const titleBytes=Uint8Array.from({length:titleLength},()=>read(8));
+      title=new TextDecoder().decode(titleBytes) || 'Stitcher challenge';
+    }
+
+    const grids=[];
+    for(let i=0;i<gridCount;i++){
+      const shiftIndex=read(4);
+      const rotationIndex=read(2);
+      if(shiftIndex>=SHIFTS.length || rotationIndex>=ROTATIONS.length) throw new Error('Challenge key data is invalid.');
+      const d=Array.from({length:22},()=>read(5));
+      grids.push({d,s:SHIFTS[shiftIndex],o:ROTATIONS[rotationIndex]});
+    }
+
+    return {v:1,title,grids,lineLength,colorLength,compactVersion:4};
   }
 
   function decodeCompactV3(bytes){
@@ -299,7 +339,12 @@
   function decodePayload(encoded){
     const bytes=base64UrlToBytes(encoded);
 
-    // v3: tightly bit-packed and self-verifying from the grid data itself.
+    // v4: tightly bit-packed with an optional title.
+    if(bytes.length && (bytes[0]&0xe0)===0xc0){
+      return decodeCompactV4(bytes);
+    }
+
+    // v3: tightly bit-packed without a title.
     if(bytes.length && (bytes[0]&0xe0)===0xe0){
       return decodeCompactV3(bytes);
     }
@@ -435,7 +480,7 @@
     mod,hue0,hue1,colorsFor,cellStateShapeMarkup,shiftAngle,shiftPipPoint,sanitize,normalizeAnswer,
     charIndex,shiftedIndex,bitsFor,shiftedChar,bitsToValue,valueToBits,
     segment,requiredGridCount,encodeGrid,svgMarkup,
-    encodePayload,decodePayload,decodeCompactV3,decodeChallengeMessages,buildChallenge,gridFromPayloadGrid,
+    encodePayload,decodePayload,decodeCompactV4,decodeCompactV3,decodeChallengeMessages,buildChallenge,gridFromPayloadGrid,
     hexToBytes,bytesToHex,packBits,makeBitReader,checkAnswer
   };
 })();
