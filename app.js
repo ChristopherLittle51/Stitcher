@@ -22,6 +22,7 @@
   const annotateHue = $('#annotate-hue');
   const annotateShade = $('#annotate-shade');
   const clearAnnotations = $('#clear-annotations');
+  const colorblindToggle = $('#colorblind-mode');
 
   const creatorTitle = $('#creator-title');
   const includeTitle = $('#include-title');
@@ -42,6 +43,17 @@
   let creatorKeys = [];
   let annotationMode = 'hue';
   let annotationState = [];
+
+  function setColorblindMode(enabled){
+    const on=Boolean(enabled);
+    document.body.classList.toggle('colorblind-mode',on);
+    colorblindToggle.checked=on;
+    try{ localStorage.setItem('stitcher-colorblind-mode',on?'1':'0'); }catch{}
+  }
+
+  function initialColorblindMode(){
+    try{ return localStorage.getItem('stitcher-colorblind-mode')==='1'; }catch{ return false; }
+  }
 
   function switchView(name, options={}){
     if(name!=='play' && activeChallenge && score>0 && !options.force){
@@ -534,6 +546,8 @@
     }
   }
 
+  colorblindToggle.addEventListener('change',()=>setColorblindMode(colorblindToggle.checked));
+
   annotateHue.addEventListener('click',()=>setAnnotationMode('hue'));
   annotateShade.addEventListener('click',()=>setAnnotationMode('shade'));
   clearAnnotations.addEventListener('click',clearAllAnnotations);
@@ -547,6 +561,7 @@
   defaultShift.addEventListener('change',()=>buildCreator(true));
   defaultRotation.addEventListener('change',()=>buildCreator(true));
 
+  setColorblindMode(initialColorblindMode());
   setAnnotationMode('hue');
   fillReference();
   renderHints();
