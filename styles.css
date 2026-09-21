@@ -82,9 +82,9 @@ h3{font-size:1.05rem}
 .secondary-button{background:transparent;color:var(--ink);border-color:rgba(19,45,77,.25)}
 .wide-button{width:100%}
 .challenge-heading{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:24px}
-.score-card{min-width:116px;text-align:center;padding:12px 18px;border-radius:16px;background:var(--ink);color:#fff}
+.score-card{min-width:150px;text-align:center;padding:12px 18px;border-radius:16px;background:var(--ink);color:#fff}
 .score-card span{display:block;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;opacity:.72}
-.score-card strong{font-size:2.2rem}
+.score-card strong{display:block;font-size:clamp(1.35rem,4vw,2rem);white-space:nowrap}
 .annotation-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:10px;padding:16px 18px}
 .annotation-toolbar p{margin:4px 0 0;color:var(--muted);font-size:.88rem;line-height:1.45;max-width:680px}
 .annotation-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
