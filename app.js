@@ -345,6 +345,24 @@
     challengeGrids.querySelectorAll('.cipher-card').forEach((card,index)=>syncAnnotationCard(card,index));
   }
 
+  function signedWheelShift(index){
+    const i=C.mod(index,12);
+    return i<=6 ? i : i-12;
+  }
+
+  function polarPoint(cx,cy,r,degrees){
+    const q=degrees*Math.PI/180;
+    return {x:cx+Math.cos(q)*r,y:cy+Math.sin(q)*r};
+  }
+
+  function wheelSectorPath(cx,cy,innerR,outerR,startDeg,endDeg){
+    const a=polarPoint(cx,cy,outerR,startDeg);
+    const b=polarPoint(cx,cy,outerR,endDeg);
+    const c=polarPoint(cx,cy,innerR,endDeg);
+    const d=polarPoint(cx,cy,innerR,startDeg);
+    return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${outerR} ${outerR} 0 0 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)} L ${c.x.toFixed(2)} ${c.y.toFixed(2)} A ${innerR} ${innerR} 0 0 0 ${d.x.toFixed(2)} ${d.y.toFixed(2)} Z`;
+  }
+
   function createCipherCard(grid,index,rotation,{creator=false,key=null,interactive=false}={}){
     const card=document.createElement('article');
     card.className='cipher-card';
@@ -360,32 +378,62 @@
 
     if(interactive){
       const assists=document.createElement('div');
-      assists.className='grid-assists';
+      assists.className='grid-assists visual-grid-controls';
       const state=annotationState[index];
 
-      const rotationControl=document.createElement('div');
-      rotationControl.className='grid-assist-control';
-      const rotationLabel=document.createElement('label');
-      rotationLabel.textContent='Rotate view';
-      const rotationSelect=document.createElement('select');
-      [
-        [0,'No turn'],
-        [90,'90° clockwise'],
-        [180,'180°'],
-        [270,'90° counterclockwise']
-      ].forEach(([value,label])=>{
-        const option=document.createElement('option');
-        option.value=String(value);
-        option.textContent=label;
-        rotationSelect.appendChild(option);
-      });
-      rotationSelect.value=String(state.rotationGuess);
-      rotationSelect.addEventListener('change',()=>{
-        if(state.rotationRevealed) return;
-        state.rotationGuess=Number(rotationSelect.value);
-        visual.innerHTML=C.svgMarkup(grid,C.mod(rotation+state.rotationGuess,360),{interactive:true});
+      const currentDisplayRotation=()=>C.mod(rotation+state.rotationGuess,360);
+      const renderPuzzle=()=>{
+        visual.innerHTML=C.svgMarkup(grid,currentDisplayRotation(),{
+          interactive:true,
+          colorOffset:state.shiftGuess
+        });
         syncAnnotationCard(card,index);
-      });
+      };
+
+      const rotationControl=document.createElement('div');
+      rotationControl.className='grid-assist-control rotation-control';
+
+      const rotationHeading=document.createElement('div');
+      rotationHeading.className='visual-control-heading';
+      rotationHeading.innerHTML='<strong>Rotation</strong><span>free to turn</span>';
+
+      const rotationStage=document.createElement('div');
+      rotationStage.className='rotation-stage';
+
+      const rotateLeft=document.createElement('button');
+      rotateLeft.type='button';
+      rotateLeft.className='rotation-step-button';
+      rotateLeft.setAttribute('aria-label','Rotate puzzle 90 degrees counterclockwise');
+      rotateLeft.textContent='↺';
+
+      const rotationPreview=document.createElement('div');
+      rotationPreview.className='rotation-preview';
+      rotationPreview.innerHTML='<span class="rotation-preview-dot"></span><span class="rotation-readout">0°</span>';
+
+      const rotateRight=document.createElement('button');
+      rotateRight.type='button';
+      rotateRight.className='rotation-step-button';
+      rotateRight.setAttribute('aria-label','Rotate puzzle 90 degrees clockwise');
+      rotateRight.textContent='↻';
+
+      const updateRotationControl=()=>{
+        const displayRotation=currentDisplayRotation();
+        rotationPreview.dataset.rotation=String(displayRotation);
+        rotationPreview.querySelector('.rotation-readout').textContent=`${state.rotationGuess}°`;
+        rotateLeft.disabled=state.rotationRevealed;
+        rotateRight.disabled=state.rotationRevealed;
+      };
+
+      const turnRotation=delta=>{
+        if(state.rotationRevealed) return;
+        state.rotationGuess=C.mod(state.rotationGuess+delta,360);
+        updateRotationControl();
+        renderPuzzle();
+      };
+      rotateLeft.addEventListener('click',()=>turnRotation(-90));
+      rotateRight.addEventListener('click',()=>turnRotation(90));
+      rotationStage.append(rotateLeft,rotationPreview,rotateRight);
+
       const rotationButton=document.createElement('button');
       rotationButton.type='button';
       rotationButton.className='grid-assist-button';
@@ -396,52 +444,137 @@
         state.rotationRevealed=true;
         state.rotationGuess=C.mod(-rotation,360);
         spendPoints(ASSIST_COSTS.rotation);
-        rotationSelect.value=String(state.rotationGuess);
-        rotationSelect.disabled=true;
-        visual.innerHTML=C.svgMarkup(grid,0,{interactive:true});
         rotationButton.textContent='Orientation revealed';
         rotationButton.disabled=true;
-        syncAnnotationCard(card,index);
+        updateRotationControl();
+        renderPuzzle();
       });
-      rotationControl.append(rotationLabel,rotationSelect,rotationButton);
+      rotationControl.append(rotationHeading,rotationStage,rotationButton);
 
       const shiftControl=document.createElement('div');
-      shiftControl.className='grid-assist-control';
-      const shiftLabel=document.createElement('label');
-      shiftLabel.textContent='Color shift';
-      const shiftSelect=document.createElement('select');
-      C.SHIFTS.forEach(value=>{
-        const option=document.createElement('option');
-        option.value=String(value);
-        option.textContent=`${value>=0?'+':''}${value} · ${C.hue0(value).name}/${C.hue1(value).name}`;
-        shiftSelect.appendChild(option);
-      });
-      shiftSelect.value=String(state.shiftGuess);
-      shiftSelect.addEventListener('change',()=>{
+      shiftControl.className='grid-assist-control color-wheel-control';
+
+      const shiftHeading=document.createElement('div');
+      shiftHeading.className='visual-control-heading';
+      shiftHeading.innerHTML='<strong>Color offset</strong><span>free to turn</span>';
+
+      const wheelWrap=document.createElement('div');
+      wheelWrap.className='solver-color-wheel-wrap';
+      const wheel=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      wheel.setAttribute('viewBox','0 0 180 180');
+      wheel.setAttribute('class','solver-color-wheel');
+      wheel.setAttribute('role','group');
+      wheel.setAttribute('aria-label','Choose color offset');
+
+      const selectedLine=document.createElementNS('http://www.w3.org/2000/svg','line');
+      selectedLine.setAttribute('class','color-wheel-diameter');
+      wheel.appendChild(selectedLine);
+
+      const sectorEls=[];
+      for(let i=0;i<12;i++){
+        const value=signedWheelShift(i);
+        const angle=-90+i*30;
+        const sector=document.createElementNS('http://www.w3.org/2000/svg','path');
+        sector.setAttribute('d',wheelSectorPath(90,90,33,64,angle-14.5,angle+14.5));
+        sector.setAttribute('fill',C.hue0(value).hex);
+        sector.setAttribute('class','color-wheel-sector');
+        sector.dataset.shift=String(value);
+        sector.setAttribute('tabindex','0');
+        sector.setAttribute('role','button');
+        sector.setAttribute('aria-label',`Use color offset ${value>=0?'+':''}${value}`);
+        sectorEls.push(sector);
+        wheel.appendChild(sector);
+
+        const labelPoint=polarPoint(90,90,76,angle);
+        const label=document.createElementNS('http://www.w3.org/2000/svg','text');
+        label.setAttribute('x',labelPoint.x.toFixed(2));
+        label.setAttribute('y',(labelPoint.y+3.5).toFixed(2));
+        label.setAttribute('text-anchor','middle');
+        label.setAttribute('class','color-wheel-label');
+        label.textContent=value>0?`+${value}`:String(value);
+        wheel.appendChild(label);
+      }
+
+      const center=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      center.setAttribute('cx','90');
+      center.setAttribute('cy','90');
+      center.setAttribute('r','27');
+      center.setAttribute('class','color-wheel-center');
+      wheel.appendChild(center);
+
+      const centerTop=document.createElementNS('http://www.w3.org/2000/svg','text');
+      centerTop.setAttribute('x','90');
+      centerTop.setAttribute('y','86');
+      centerTop.setAttribute('text-anchor','middle');
+      centerTop.setAttribute('class','color-wheel-center-label');
+      centerTop.textContent='OFFSET';
+      wheel.appendChild(centerTop);
+
+      const centerValue=document.createElementNS('http://www.w3.org/2000/svg','text');
+      centerValue.setAttribute('x','90');
+      centerValue.setAttribute('y','103');
+      centerValue.setAttribute('text-anchor','middle');
+      centerValue.setAttribute('class','color-wheel-center-value');
+      wheel.appendChild(centerValue);
+
+      const setShiftGuess=value=>{
         if(state.shiftRevealed) return;
-        state.shiftGuess=Number(shiftSelect.value);
-        syncAnnotationCard(card,index);
+        state.shiftGuess=Number(value);
+        updateWheelControl();
+        renderPuzzle();
+      };
+
+      const updateWheelControl=()=>{
+        sectorEls.forEach(sector=>{
+          const selected=Number(sector.dataset.shift)===state.shiftGuess;
+          sector.classList.toggle('selected',selected);
+          sector.setAttribute('aria-pressed',String(selected));
+          sector.style.pointerEvents=state.shiftRevealed?'none':'';
+        });
+        centerValue.textContent=state.shiftGuess>=0?`+${state.shiftGuess}`:String(state.shiftGuess);
+        const angle=C.shiftAngle(state.shiftGuess);
+        const p1=polarPoint(90,90,61,angle);
+        const p2=polarPoint(90,90,61,angle+180);
+        selectedLine.setAttribute('x1',p1.x.toFixed(2));
+        selectedLine.setAttribute('y1',p1.y.toFixed(2));
+        selectedLine.setAttribute('x2',p2.x.toFixed(2));
+        selectedLine.setAttribute('y2',p2.y.toFixed(2));
+      };
+
+      sectorEls.forEach(sector=>{
+        sector.addEventListener('click',()=>setShiftGuess(sector.dataset.shift));
+        sector.addEventListener('keydown',event=>{
+          if(event.key==='Enter' || event.key===' '){
+            event.preventDefault();
+            setShiftGuess(sector.dataset.shift);
+          }
+        });
       });
+
+      wheelWrap.appendChild(wheel);
+
       const shiftButton=document.createElement('button');
       shiftButton.type='button';
       shiftButton.className='grid-assist-button';
-      shiftButton.textContent=`Reveal shift · −${ASSIST_COSTS.shift}`;
+      shiftButton.textContent=`Reveal offset · −${ASSIST_COSTS.shift}`;
       shiftButton.addEventListener('click',()=>{
         if(state.shiftRevealed) return;
-        if(!confirm(`Spend ${ASSIST_COSTS.shift} points to reveal Grid ${index+1}'s color shift?`)) return;
+        if(!confirm(`Spend ${ASSIST_COSTS.shift} points to reveal Grid ${index+1}'s correct color offset?`)) return;
         state.shiftRevealed=true;
         state.shiftGuess=grid.shift;
         spendPoints(ASSIST_COSTS.shift);
-        shiftSelect.value=String(grid.shift);
-        shiftSelect.disabled=true;
-        shiftButton.textContent=`Shift ${grid.shift>=0?'+':''}${grid.shift} revealed`;
+        shiftButton.textContent=`Offset ${grid.shift>=0?'+':''}${grid.shift} revealed`;
         shiftButton.disabled=true;
-        syncAnnotationCard(card,index);
+        updateWheelControl();
+        renderPuzzle();
       });
-      shiftControl.append(shiftLabel,shiftSelect,shiftButton);
+      shiftControl.append(shiftHeading,wheelWrap,shiftButton);
 
       assists.append(rotationControl,shiftControl);
       card.insertBefore(assists,visual);
+      updateRotationControl();
+      updateWheelControl();
+      renderPuzzle();
 
       const worksheet=createAnnotationWorksheet(index);
       card.appendChild(worksheet);
