@@ -191,7 +191,9 @@
 
   function svgMarkup(grid,rotation=0,options={}){
     const step=54,pad=30,total=pad*2+step*5,cx=total/2,cy=total/2;
-    const colors=colorsFor(grid.shift);
+    const colorOffset=Number(options.colorOffset||0);
+    const displayShift=grid.shift-colorOffset;
+    const colors=colorsFor(displayShift);
     let inner='';
 
     for(let r=0;r<5;r++){
@@ -239,10 +241,10 @@
     if(options.interactive) inner += annotationOverlayMarkup(step,pad);
 
     const markerCanonical={x:pad-16,y:pad-16};
-    const pipCanonical=shiftPipPoint(grid.shift,markerCanonical.x,markerCanonical.y,15);
+    const pipCanonical=shiftPipPoint(displayShift,markerCanonical.x,markerCanonical.y,15);
     const dot=rotatePoint(markerCanonical.x,markerCanonical.y,cx,cy,rotation);
     const pip=rotatePoint(pipCanonical.x,pipCanonical.y,cx,cy,rotation);
-    return `<svg viewBox="0 0 ${total} ${total}" role="img" aria-label="Stitch cipher grid"><g transform="rotate(${rotation} ${cx} ${cy})">${inner}</g><circle cx="${dot.x}" cy="${dot.y}" r="9" fill="${hue0(grid.shift).hex}" stroke="#173b70" stroke-width="2"/><circle class="colorblind-shift-pip" cx="${pip.x}" cy="${pip.y}" r="3.4" fill="#173b70" stroke="#fffdf8" stroke-width="1.2"/></svg>`;
+    return `<svg viewBox="0 0 ${total} ${total}" role="img" aria-label="Stitch cipher grid"><g transform="rotate(${rotation} ${cx} ${cy})">${inner}</g><circle cx="${dot.x}" cy="${dot.y}" r="9" fill="${hue0(displayShift).hex}" stroke="#173b70" stroke-width="2"/><circle class="colorblind-shift-pip" cx="${pip.x}" cy="${pip.y}" r="3.4" fill="#173b70" stroke="#fffdf8" stroke-width="1.2"/></svg>`;
   }
 
   function bytesToBase64Url(bytes){
