@@ -69,11 +69,18 @@
     C.SHIFTS.forEach(s=>{
       const row=document.createElement('div');
       row.className='wheel-row';
+      const q=C.shiftAngle(s)*Math.PI/180;
+      const pipX=14+Math.cos(q)*10;
+      const pipY=14+Math.sin(q)*10;
       row.innerHTML=`
         <span class="swatch-pair">
           <span class="swatch" style="background:${C.hue0(s).hex}"></span>
           <span class="swatch" style="background:${C.hue1(s).hex}"></span>
         </span>
+        <svg class="shift-clock" viewBox="0 0 28 28" role="img" aria-label="Shift ${s>=0?'+':''}${s} accessibility marker">
+          <circle cx="14" cy="14" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <circle cx="${pipX.toFixed(2)}" cy="${pipY.toFixed(2)}" r="2.5" fill="currentColor"/>
+        </svg>
         <span><strong>${s>=0?'+':''}${s}</strong> — ${C.hue0(s).name} / ${C.hue1(s).name}</span>`;
       wheel.appendChild(row);
     });
