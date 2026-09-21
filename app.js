@@ -874,7 +874,7 @@
     return [
       `Stitcher ✣ ${score}/${maxScore} · ${pct}%`,
       `🧵 ${assists.lineBits} line bit${assists.lineBits===1?'':'s'} marked · 🎨 ${assists.colorBits} color bit${assists.colorBits===1?'':'s'} marked`,
-      `↻ ${assists.rotations} rotation${assists.rotations===1?'':'s'} · 🌈 ${assists.shifts} shift${assists.shifts===1?'':'s'}`,
+      `↻ ${assists.rotations} orientation reveal${assists.rotations===1?'':'s'} · 🌈 ${assists.shifts} offset reveal${assists.shifts===1?'':'s'}`,
       '',
       'Can you beat my score?',
       currentPuzzleUrl()
