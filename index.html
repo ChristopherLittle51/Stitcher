@@ -68,7 +68,7 @@
           </div>
         </section>
 
-        <p class="annotation-note">Each real message bit costs at most 1 point the first time you mark it. Clearing or changing a previously marked bit does not charge again. Rotation and color-shift guesses are free; asking for the correct value costs points. Completed groups update using your current color-shift guess.</p>
+        <p class="annotation-note">Each real message bit costs at most 1 point the first time you mark it. Turn the rotation controls and color wheel freely while solving. The color wheel rebases the puzzle palette by your selected offset; matching the hidden offset normalizes the grid to Blue / Orange. Asking Stitcher to reveal the correct orientation or offset costs points.</p>
 
         <div id="challenge-grids" class="grid-gallery" aria-live="polite"></div>
 
@@ -95,7 +95,7 @@
             <div class="hint-heading">
               <div>
                 <h3>Hints</h3>
-                <p>General hints are free. Your score drops when you use the built-in bit worksheet, or when Stitcher reveals the correct rotation or color shift.</p>
+                <p>General hints are free. Your score drops when you use the built-in bit worksheet, or when Stitcher reveals the correct orientation or color offset.</p>
               </div>
               <span id="points-left" class="points-pill">Free</span>
             </div>
@@ -264,13 +264,13 @@
 
       <section class="panel scoring-rules">
         <h2>Information score</h2>
-        <p>Your theoretical maximum scales with the actual cipher length: <strong>5 points per line-message character + 5 points per color-message character + 2 rotation points and 4 color-shift points per grid.</strong> Reading rules, using colorblind mode, typing your final answers, and opening hints are free.</p>
+        <p>Your theoretical maximum scales with the actual cipher length: <strong>5 points per line-message character + 5 points per color-message character + 2 orientation points and 4 color-offset points per grid.</strong> Reading rules, using colorblind mode, turning the controls manually, typing your final answers, and opening hints are free.</p>
         <div class="score-cost-grid">
           <div><strong>Mark one 0/1 bit in the worksheet</strong><span>−1 point</span></div>
           <div><strong>Reveal the correct orientation</strong><span>−2 points</span></div>
-          <div><strong>Reveal the correct color shift</strong><span>−4 points</span></div>
+          <div><strong>Reveal the correct color offset</strong><span>−4 points</span></div>
         </div>
-        <p class="field-note">A bit is charged only the first time you mark it, even if you later erase or change it. Padding bits are free. You can freely try any rotation or color shift; points are only deducted there when Stitcher supplies the correct value.</p>
+        <p class="field-note">A bit is charged only the first time you mark it, even if you later erase or change it. Padding bits are free. You can rotate the grid and turn the color wheel as much as you want; points are only deducted there when Stitcher supplies the correct orientation or offset.</p>
         <h3>Free hints</h3>
         <div id="rules-hint-table" class="rules-hint-table"></div>
       </section>
@@ -282,7 +282,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=12"></script>
-  <script src="./app.js?v=12"></script>
+  <script src="./cipher.js?v=13"></script>
+  <script src="./app.js?v=13"></script>
 </body>
 </html>
