@@ -21,6 +21,7 @@
   const finalResult = $('#final-result');
 
   const creatorTitle = $('#creator-title');
+  const includeTitle = $('#include-title');
   const creatorLines = $('#creator-lines');
   const creatorColors = $('#creator-colors');
   const defaultShift = $('#default-shift');
@@ -208,12 +209,14 @@
     try{
       buildCreator(false);
       const payload=await C.buildChallenge(creatorTitle.value,creatorLines.value,creatorColors.value,creatorKeys);
-      const encoded=C.encodePayload(payload);
+      const encoded=C.encodePayload(payload,{includeTitle:includeTitle.checked});
       const base=location.href.split('#')[0];
       shareUrl.value=`${base}#c=${encoded}`;
       shareOutput.hidden=false;
       copyStatus.textContent='';
-      creatorStatus.textContent='Challenge link generated.';
+      creatorStatus.textContent=includeTitle.checked
+        ? 'Challenge link generated with title.'
+        : 'Challenge link generated without title for minimum length.';
     }catch(err){
       console.error(err);
       creatorStatus.textContent='Could not generate the challenge link in this browser.';
