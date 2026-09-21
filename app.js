@@ -142,7 +142,9 @@
         shade:createBoolMatrix(5,5)
       },
       rotationRevealed:false,
-      shiftRevealed:false
+      shiftRevealed:false,
+      rotationGuess:0,
+      shiftGuess:0
     };
   }
 
@@ -197,6 +199,12 @@
     if(symbol===null) return '—';
     if(symbol===' ') return '␠';
     return symbol;
+  }
+
+  function correctedSymbol(bits,shiftGuess){
+    if(bits.some(bit=>bit===null)) return null;
+    const raw=parseInt(bits.join(''),2);
+    return C.ALPHABET[C.mod(raw-Number(shiftGuess||0),32)] ?? null;
   }
 
   function groupBits(state,kind,index){
@@ -275,12 +283,15 @@
 
     card.querySelectorAll('.decoded-symbol').forEach(chip=>{
       const bits=groupBits(state,chip.dataset.kind,Number(chip.dataset.group));
-      const symbol=rawSymbol(bits);
+      const raw=rawSymbol(bits);
+      const symbol=correctedSymbol(bits,state.shiftGuess);
       chip.textContent=symbolLabel(symbol);
       chip.classList.toggle('complete',symbol!==null);
       chip.title=symbol===null
-        ? 'Complete all five bits to reveal this raw symbol'
-        : `${bits.join('')} → ${symbol===' ' ? 'SPACE' : symbol}`;
+        ? 'Complete all five bits to reveal this symbol'
+        : state.shiftGuess===0
+          ? `${bits.join('')} → ${raw===' ' ? 'SPACE' : raw}`
+          : `${bits.join('')} → raw ${raw===' ' ? 'SPACE' : raw} → shift ${state.shiftGuess>=0?'+':''}${state.shiftGuess} → ${symbol===' ' ? 'SPACE' : symbol}`;
     });
   }
 
@@ -386,38 +397,86 @@
     if(interactive){
       const assists=document.createElement('div');
       assists.className='grid-assists';
+      const state=annotationState[index];
 
+      const rotationControl=document.createElement('div');
+      rotationControl.className='grid-assist-control';
+      const rotationLabel=document.createElement('label');
+      rotationLabel.textContent='Rotate view';
+      const rotationSelect=document.createElement('select');
+      [
+        [0,'No turn'],
+        [90,'90° clockwise'],
+        [180,'180°'],
+        [270,'90° counterclockwise']
+      ].forEach(([value,label])=>{
+        const option=document.createElement('option');
+        option.value=String(value);
+        option.textContent=label;
+        rotationSelect.appendChild(option);
+      });
+      rotationSelect.value=String(state.rotationGuess);
+      rotationSelect.addEventListener('change',()=>{
+        if(state.rotationRevealed) return;
+        state.rotationGuess=Number(rotationSelect.value);
+        visual.innerHTML=C.svgMarkup(grid,C.mod(rotation+state.rotationGuess,360),{interactive:true});
+        syncAnnotationCard(card,index);
+      });
       const rotationButton=document.createElement('button');
       rotationButton.type='button';
       rotationButton.className='grid-assist-button';
-      rotationButton.textContent=`Orient upright · −${REVEAL_COSTS.rotation}`;
+      rotationButton.textContent=`Reveal orientation · −${REVEAL_COSTS.rotation}`;
       rotationButton.addEventListener('click',()=>{
-        const state=annotationState[index];
         if(state.rotationRevealed) return;
-        if(!confirm(`Spend ${REVEAL_COSTS.rotation} points to orient Grid ${index+1} upright?`)) return;
+        if(!confirm(`Spend ${REVEAL_COSTS.rotation} points to reveal Grid ${index+1}'s correct orientation?`)) return;
         state.rotationRevealed=true;
+        state.rotationGuess=C.mod(-rotation,360);
         spendPoints(REVEAL_COSTS.rotation);
+        rotationSelect.value=String(state.rotationGuess);
+        rotationSelect.disabled=true;
         visual.innerHTML=C.svgMarkup(grid,0,{interactive:true});
-        rotationButton.textContent=`Upright · was ${rotation}°`;
+        rotationButton.textContent='Orientation revealed';
         rotationButton.disabled=true;
         syncAnnotationCard(card,index);
       });
+      rotationControl.append(rotationLabel,rotationSelect,rotationButton);
 
+      const shiftControl=document.createElement('div');
+      shiftControl.className='grid-assist-control';
+      const shiftLabel=document.createElement('label');
+      shiftLabel.textContent='Color shift';
+      const shiftSelect=document.createElement('select');
+      C.SHIFTS.forEach(value=>{
+        const option=document.createElement('option');
+        option.value=String(value);
+        option.textContent=`${value>=0?'+':''}${value} · ${C.hue0(value).name}/${C.hue1(value).name}`;
+        shiftSelect.appendChild(option);
+      });
+      shiftSelect.value=String(state.shiftGuess);
+      shiftSelect.addEventListener('change',()=>{
+        if(state.shiftRevealed) return;
+        state.shiftGuess=Number(shiftSelect.value);
+        syncAnnotationCard(card,index);
+      });
       const shiftButton=document.createElement('button');
       shiftButton.type='button';
       shiftButton.className='grid-assist-button';
-      shiftButton.textContent=`Reveal color shift · −${REVEAL_COSTS.shift}`;
+      shiftButton.textContent=`Reveal shift · −${REVEAL_COSTS.shift}`;
       shiftButton.addEventListener('click',()=>{
-        const state=annotationState[index];
         if(state.shiftRevealed) return;
         if(!confirm(`Spend ${REVEAL_COSTS.shift} points to reveal Grid ${index+1}'s color shift?`)) return;
         state.shiftRevealed=true;
+        state.shiftGuess=grid.shift;
         spendPoints(REVEAL_COSTS.shift);
-        shiftButton.textContent=`Color shift ${grid.shift>=0?'+':''}${grid.shift}`;
+        shiftSelect.value=String(grid.shift);
+        shiftSelect.disabled=true;
+        shiftButton.textContent=`Shift ${grid.shift>=0?'+':''}${grid.shift} revealed`;
         shiftButton.disabled=true;
+        syncAnnotationCard(card,index);
       });
+      shiftControl.append(shiftLabel,shiftSelect,shiftButton);
 
-      assists.append(rotationButton,shiftButton);
+      assists.append(rotationControl,shiftControl);
       card.insertBefore(assists,visual);
 
       const worksheet=createAnnotationWorksheet(index);
