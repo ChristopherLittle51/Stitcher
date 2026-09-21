@@ -199,6 +199,13 @@ footer{
 }
 @media(max-width:620px){
   .site-header{align-items:flex-start;flex-direction:column}
+  main{width:calc(100% - 8px)}
+  #challenge-grids{gap:12px}
+  #challenge-grids .cipher-card{padding:10px 4px 14px;border-radius:14px}
+  #challenge-grids .cipher-card-header{padding:0 10px}
+  #challenge-grids .annotation-worksheet{margin-left:8px;margin-right:8px;padding-left:2px;padding-right:2px}
+  #challenge-grids .cipher-card svg{width:100%}
+
   .header-tools{width:100%;align-items:stretch;flex-direction:column}
   .colorblind-toggle{align-self:flex-start}
   .annotation-toolbar{align-items:stretch;flex-direction:column}
@@ -208,7 +215,7 @@ footer{
   .decoded-group{grid-template-columns:68px 1fr}
   .main-nav{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}
   .nav-button{padding:9px 7px}
-  main{width:min(100% - 22px,1180px);padding-top:22px}
+  main{padding-top:22px}
   .hero{padding-top:20px}
   .challenge-heading{align-items:start}
   .rules-grid{grid-template-columns:1fr}
