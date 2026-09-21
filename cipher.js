@@ -252,53 +252,64 @@
   }
 
   function encodePayload(payload){
-    const titleBytes=new TextEncoder().encode(String(payload.title||'').slice(0,80));
     const grids=Array.isArray(payload.grids)?payload.grids:[];
-    if(titleBytes.length>65535) throw new Error('Challenge title is too long.');
-    if(grids.length>255) throw new Error('Challenge has too many grids.');
+    if(grids.length<1 || grids.length>31) throw new Error('Challenge must contain 1–31 grids.');
 
-    const gridBytes=[];
+    const lineLength=Math.min(511,Number(payload.lineLength||0));
+    const colorLength=Math.min(511,Number(payload.colorLength||0));
+    const fields=[
+      {value:0xe0|grids.length,bits:8},
+      {value:lineLength,bits:9},
+      {value:colorLength,bits:9}
+    ];
+
     grids.forEach(g=>{
       const shiftIndex=SHIFTS.indexOf(Number(g.s));
       const rotationIndex=ROTATIONS.indexOf(Number(g.o||0));
       if(shiftIndex<0 || rotationIndex<0 || !Array.isArray(g.d) || g.d.length!==22){
         throw new Error('Challenge grid data is invalid.');
       }
-      const fields=[
-        {value:(shiftIndex<<2)|rotationIndex,bits:6},
-        ...g.d.map(value=>({value:Number(value)&31,bits:5}))
-      ];
-      gridBytes.push(packBits(fields));
+      fields.push({value:shiftIndex,bits:4},{value:rotationIndex,bits:2});
+      g.d.forEach(value=>fields.push({value:Number(value)&31,bits:5}));
     });
 
-    const lineHash=hexToBytes(payload.lineHash).slice(0,8);
-    const colorHash=hexToBytes(payload.colorHash).slice(0,8);
-    if(lineHash.length!==8 || colorHash.length!==8) throw new Error('Challenge answer hashes are invalid.');
+    return bytesToBase64Url(packBits(fields));
+  }
 
-    const size=3+2+titleBytes.length+1+16+gridBytes.reduce((n,b)=>n+b.length,0);
-    const out=new Uint8Array(size);
-    let p=0;
-    out[p++]=0x53;
-    out[p++]=0x54;
-    out[p++]=0x02;
-    out[p++]=(titleBytes.length>>8)&255;
-    out[p++]=titleBytes.length&255;
-    out.set(titleBytes,p); p+=titleBytes.length;
-    out[p++]=grids.length;
-    out.set(lineHash,p); p+=8;
-    out.set(colorHash,p); p+=8;
-    gridBytes.forEach(bytes=>{out.set(bytes,p);p+=bytes.length;});
-    return bytesToBase64Url(out);
+  function decodeCompactV3(bytes){
+    const read=makeBitReader(bytes);
+    const header=read(8);
+    const gridCount=header&31;
+    if((header&0xe0)!==0xe0 || gridCount<1) throw new Error('Unsupported compact challenge.');
+    const lineLength=read(9);
+    const colorLength=read(9);
+    const grids=[];
+
+    for(let i=0;i<gridCount;i++){
+      const shiftIndex=read(4);
+      const rotationIndex=read(2);
+      if(shiftIndex>=SHIFTS.length || rotationIndex>=ROTATIONS.length) throw new Error('Challenge key data is invalid.');
+      const d=Array.from({length:22},()=>read(5));
+      grids.push({d,s:SHIFTS[shiftIndex],o:ROTATIONS[rotationIndex]});
+    }
+
+    return {v:1,title:'Stitcher challenge',grids,lineLength,colorLength,compactVersion:3};
   }
 
   function decodePayload(encoded){
     const bytes=base64UrlToBytes(encoded);
 
-    // Legacy v1 links were UTF-8 JSON. Keep them working indefinitely.
+    // v3: tightly bit-packed and self-verifying from the grid data itself.
+    if(bytes.length && (bytes[0]&0xe0)===0xe0){
+      return decodeCompactV3(bytes);
+    }
+
+    // Legacy v1 links were UTF-8 JSON.
     if(bytes[0]===0x7b){
       return JSON.parse(new TextDecoder().decode(bytes));
     }
 
+    // v2 used an ST header and truncated hashes. Keep those links working.
     if(bytes.length<22 || bytes[0]!==0x53 || bytes[1]!==0x54 || bytes[2]!==0x02){
       throw new Error('Unsupported challenge format.');
     }
@@ -324,7 +335,27 @@
       grids.push({d,s:SHIFTS[shiftIndex],o:ROTATIONS[rotationIndex]});
     }
 
-    return {v:1,title,grids,lineHash,colorHash};
+    return {v:1,title,grids,lineHash,colorHash,compactVersion:2};
+  }
+
+  function decodeChallengeMessages(payload){
+    let line='';
+    let color='';
+    (payload.grids||[]).forEach(g=>{
+      const shift=Number(g.s||0);
+      const values=Array.isArray(g.d)?g.d:[
+        ...(g.h||[]).map(bitsToValue),
+        ...(g.v||[]).map(bitsToValue),
+        ...(g.r||[]).map(bitsToValue),
+        ...(g.c||[]).map(bitsToValue)
+      ];
+      const decodeValue=value=>ALPHABET[mod(Number(value)-shift,32)];
+      line += values.slice(0,12).map(decodeValue).join('');
+      color += values.slice(12,22).map(decodeValue).join('');
+    });
+    const lineLength=Number.isFinite(Number(payload.lineLength))?Number(payload.lineLength):line.replace(/\s+$/,'').length;
+    const colorLength=Number.isFinite(Number(payload.colorLength))?Number(payload.colorLength):color.replace(/\s+$/,'').length;
+    return {line:line.slice(0,lineLength),color:color.slice(0,colorLength)};
   }
 
   async function sha256(text){
@@ -404,7 +435,7 @@
     mod,hue0,hue1,colorsFor,cellStateShapeMarkup,shiftAngle,shiftPipPoint,sanitize,normalizeAnswer,
     charIndex,shiftedIndex,bitsFor,shiftedChar,bitsToValue,valueToBits,
     segment,requiredGridCount,encodeGrid,svgMarkup,
-    encodePayload,decodePayload,buildChallenge,gridFromPayloadGrid,
+    encodePayload,decodePayload,decodeCompactV3,decodeChallengeMessages,buildChallenge,gridFromPayloadGrid,
     hexToBytes,bytesToHex,packBits,makeBitReader,checkAnswer
   };
 })();
