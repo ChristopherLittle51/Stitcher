@@ -210,14 +210,121 @@
     return Uint8Array.from(binary,c=>c.charCodeAt(0));
   }
 
+  function hexToBytes(hex){
+    const clean=String(hex||'').replace(/[^0-9a-f]/gi,'');
+    const out=new Uint8Array(Math.floor(clean.length/2));
+    for(let i=0;i<out.length;i++) out[i]=parseInt(clean.slice(i*2,i*2+2),16);
+    return out;
+  }
+
+  function bytesToHex(bytes){
+    return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function packBits(values){
+    const totalBits=values.reduce((sum,item)=>sum+item.bits,0);
+    const out=new Uint8Array(Math.ceil(totalBits/8));
+    let bitPos=0;
+    for(const item of values){
+      for(let i=item.bits-1;i>=0;i--){
+        const bit=(item.value>>i)&1;
+        const byteIndex=Math.floor(bitPos/8);
+        const offset=7-(bitPos%8);
+        out[byteIndex]|=bit<<offset;
+        bitPos++;
+      }
+    }
+    return out;
+  }
+
+  function makeBitReader(bytes){
+    let bitPos=0;
+    return bits=>{
+      let value=0;
+      for(let i=0;i<bits;i++){
+        const byteIndex=Math.floor(bitPos/8);
+        const offset=7-(bitPos%8);
+        value=(value<<1)|((bytes[byteIndex]>>offset)&1);
+        bitPos++;
+      }
+      return value;
+    };
+  }
+
   function encodePayload(payload){
-    const json=JSON.stringify(payload);
-    return bytesToBase64Url(new TextEncoder().encode(json));
+    const titleBytes=new TextEncoder().encode(String(payload.title||'').slice(0,80));
+    const grids=Array.isArray(payload.grids)?payload.grids:[];
+    if(titleBytes.length>65535) throw new Error('Challenge title is too long.');
+    if(grids.length>255) throw new Error('Challenge has too many grids.');
+
+    const gridBytes=[];
+    grids.forEach(g=>{
+      const shiftIndex=SHIFTS.indexOf(Number(g.s));
+      const rotationIndex=ROTATIONS.indexOf(Number(g.o||0));
+      if(shiftIndex<0 || rotationIndex<0 || !Array.isArray(g.d) || g.d.length!==22){
+        throw new Error('Challenge grid data is invalid.');
+      }
+      const fields=[
+        {value:(shiftIndex<<2)|rotationIndex,bits:6},
+        ...g.d.map(value=>({value:Number(value)&31,bits:5}))
+      ];
+      gridBytes.push(packBits(fields));
+    });
+
+    const lineHash=hexToBytes(payload.lineHash).slice(0,8);
+    const colorHash=hexToBytes(payload.colorHash).slice(0,8);
+    if(lineHash.length!==8 || colorHash.length!==8) throw new Error('Challenge answer hashes are invalid.');
+
+    const size=3+2+titleBytes.length+1+16+gridBytes.reduce((n,b)=>n+b.length,0);
+    const out=new Uint8Array(size);
+    let p=0;
+    out[p++]=0x53;
+    out[p++]=0x54;
+    out[p++]=0x02;
+    out[p++]=(titleBytes.length>>8)&255;
+    out[p++]=titleBytes.length&255;
+    out.set(titleBytes,p); p+=titleBytes.length;
+    out[p++]=grids.length;
+    out.set(lineHash,p); p+=8;
+    out.set(colorHash,p); p+=8;
+    gridBytes.forEach(bytes=>{out.set(bytes,p);p+=bytes.length;});
+    return bytesToBase64Url(out);
   }
 
   function decodePayload(encoded){
-    const json=new TextDecoder().decode(base64UrlToBytes(encoded));
-    return JSON.parse(json);
+    const bytes=base64UrlToBytes(encoded);
+
+    // Legacy v1 links were UTF-8 JSON. Keep them working indefinitely.
+    if(bytes[0]===0x7b){
+      return JSON.parse(new TextDecoder().decode(bytes));
+    }
+
+    if(bytes.length<22 || bytes[0]!==0x53 || bytes[1]!==0x54 || bytes[2]!==0x02){
+      throw new Error('Unsupported challenge format.');
+    }
+
+    let p=3;
+    const titleLength=(bytes[p++]<<8)|bytes[p++];
+    if(p+titleLength+17>bytes.length) throw new Error('Challenge data is incomplete.');
+    const title=new TextDecoder().decode(bytes.slice(p,p+titleLength)); p+=titleLength;
+    const gridCount=bytes[p++];
+    const lineHash=bytesToHex(bytes.slice(p,p+8)); p+=8;
+    const colorHash=bytesToHex(bytes.slice(p,p+8)); p+=8;
+    const grids=[];
+
+    for(let g=0;g<gridCount;g++){
+      if(p+15>bytes.length) throw new Error('Challenge grid data is incomplete.');
+      const read=makeBitReader(bytes.slice(p,p+15));
+      p+=15;
+      const key=read(6);
+      const shiftIndex=key>>2;
+      const rotationIndex=key&3;
+      if(shiftIndex>=SHIFTS.length || rotationIndex>=ROTATIONS.length) throw new Error('Challenge key data is invalid.');
+      const d=Array.from({length:22},()=>read(5));
+      grids.push({d,s:SHIFTS[shiftIndex],o:ROTATIONS[rotationIndex]});
+    }
+
+    return {v:1,title,grids,lineHash,colorHash};
   }
 
   async function sha256(text){
@@ -287,7 +394,9 @@
   }
 
   async function checkAnswer(raw,expectedHash){
-    return (await sha256(normalizeAnswer(raw))) === expectedHash;
+    const actual=await sha256(normalizeAnswer(raw));
+    const expected=String(expectedHash||'').toLowerCase();
+    return expected.length>=8 && actual.slice(0,expected.length)===expected;
   }
 
   window.StitcherCipher = {
@@ -296,6 +405,6 @@
     charIndex,shiftedIndex,bitsFor,shiftedChar,bitsToValue,valueToBits,
     segment,requiredGridCount,encodeGrid,svgMarkup,
     encodePayload,decodePayload,buildChallenge,gridFromPayloadGrid,
-    checkAnswer
+    hexToBytes,bytesToHex,packBits,makeBitReader,checkAnswer
   };
 })();
