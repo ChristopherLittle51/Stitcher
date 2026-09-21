@@ -138,8 +138,8 @@
         hue:createBoolMatrix(5,5),
         shade:createBoolMatrix(5,5)
       },
-      rotationRevealed:false,
-      shiftRevealed:false,
+      rotationUsed:false,
+      shiftUsed:false,
       rotationGuess:0,
       shiftGuess:0
     };
@@ -395,7 +395,7 @@
 
       const rotationHeading=document.createElement('div');
       rotationHeading.className='visual-control-heading';
-      rotationHeading.innerHTML='<strong>Rotation</strong><span>free to turn</span>';
+      rotationHeading.innerHTML='<strong>Rotation</strong><span>−2 on first turn</span>';
 
       const rotationStage=document.createElement('div');
       rotationStage.className='rotation-stage';
@@ -420,12 +420,15 @@
         const displayRotation=currentDisplayRotation();
         rotationPreview.dataset.rotation=String(displayRotation);
         rotationPreview.querySelector('.rotation-readout').textContent=`${state.rotationGuess}°`;
-        rotateLeft.disabled=state.rotationRevealed;
-        rotateRight.disabled=state.rotationRevealed;
+        rotateLeft.disabled=false;
+        rotateRight.disabled=false;
       };
 
       const turnRotation=delta=>{
-        if(state.rotationRevealed) return;
+        if(!state.rotationUsed){
+          state.rotationUsed=true;
+          spendPoints(ASSIST_COSTS.rotation);
+        }
         state.rotationGuess=C.mod(state.rotationGuess+delta,360);
         updateRotationControl();
         renderPuzzle();
@@ -434,29 +437,14 @@
       rotateRight.addEventListener('click',()=>turnRotation(90));
       rotationStage.append(rotateLeft,rotationPreview,rotateRight);
 
-      const rotationButton=document.createElement('button');
-      rotationButton.type='button';
-      rotationButton.className='grid-assist-button';
-      rotationButton.textContent=`Reveal orientation · −${ASSIST_COSTS.rotation}`;
-      rotationButton.addEventListener('click',()=>{
-        if(state.rotationRevealed) return;
-        if(!confirm(`Spend ${ASSIST_COSTS.rotation} points to reveal Grid ${index+1}'s correct orientation?`)) return;
-        state.rotationRevealed=true;
-        state.rotationGuess=C.mod(-rotation,360);
-        spendPoints(ASSIST_COSTS.rotation);
-        rotationButton.textContent='Orientation revealed';
-        rotationButton.disabled=true;
-        updateRotationControl();
-        renderPuzzle();
-      });
-      rotationControl.append(rotationHeading,rotationStage,rotationButton);
+      rotationControl.append(rotationHeading,rotationStage);
 
       const shiftControl=document.createElement('div');
       shiftControl.className='grid-assist-control color-wheel-control';
 
       const shiftHeading=document.createElement('div');
       shiftHeading.className='visual-control-heading';
-      shiftHeading.innerHTML='<strong>Color offset</strong><span>free to turn</span>';
+      shiftHeading.innerHTML='<strong>Color offset</strong><span>−4 on first move</span>';
 
       const wheelWrap=document.createElement('div');
       wheelWrap.className='solver-color-wheel-wrap';
@@ -518,8 +506,13 @@
       wheel.appendChild(centerValue);
 
       const setShiftGuess=value=>{
-        if(state.shiftRevealed) return;
-        state.shiftGuess=Number(value);
+        const next=Number(value);
+        if(next===state.shiftGuess) return;
+        if(!state.shiftUsed){
+          state.shiftUsed=true;
+          spendPoints(ASSIST_COSTS.shift);
+        }
+        state.shiftGuess=next;
         updateWheelControl();
         renderPuzzle();
       };
@@ -529,7 +522,7 @@
           const selected=Number(sector.dataset.shift)===state.shiftGuess;
           sector.classList.toggle('selected',selected);
           sector.setAttribute('aria-pressed',String(selected));
-          sector.style.pointerEvents=state.shiftRevealed?'none':'';
+          sector.style.pointerEvents='';
         });
         centerValue.textContent=state.shiftGuess>=0?`+${state.shiftGuess}`:String(state.shiftGuess);
         const angle=C.shiftAngle(state.shiftGuess);
@@ -553,22 +546,7 @@
 
       wheelWrap.appendChild(wheel);
 
-      const shiftButton=document.createElement('button');
-      shiftButton.type='button';
-      shiftButton.className='grid-assist-button';
-      shiftButton.textContent=`Reveal offset · −${ASSIST_COSTS.shift}`;
-      shiftButton.addEventListener('click',()=>{
-        if(state.shiftRevealed) return;
-        if(!confirm(`Spend ${ASSIST_COSTS.shift} points to reveal Grid ${index+1}'s correct color offset?`)) return;
-        state.shiftRevealed=true;
-        state.shiftGuess=grid.shift;
-        spendPoints(ASSIST_COSTS.shift);
-        shiftButton.textContent=`Offset ${grid.shift>=0?'+':''}${grid.shift} revealed`;
-        shiftButton.disabled=true;
-        updateWheelControl();
-        renderPuzzle();
-      });
-      shiftControl.append(shiftHeading,wheelWrap,shiftButton);
+      shiftControl.append(shiftHeading,wheelWrap);
 
       assists.append(rotationControl,shiftControl);
       card.insertBefore(assists,visual);
@@ -853,8 +831,8 @@
           if(state.counted.shade[r][c] && bitBelongsToMessage(index,'shade',r,c)) colorBits++;
         }
       }
-      if(state.rotationRevealed) rotations++;
-      if(state.shiftRevealed) shifts++;
+      if(state.rotationUsed) rotations++;
+      if(state.shiftUsed) shifts++;
     });
 
     return {lineBits,colorBits,rotations,shifts};
@@ -874,7 +852,7 @@
     return [
       `Stitcher ✣ ${score}/${maxScore} · ${pct}%`,
       `🧵 ${assists.lineBits} line bit${assists.lineBits===1?'':'s'} marked · 🎨 ${assists.colorBits} color bit${assists.colorBits===1?'':'s'} marked`,
-      `↻ ${assists.rotations} orientation reveal${assists.rotations===1?'':'s'} · 🌈 ${assists.shifts} offset reveal${assists.shifts===1?'':'s'}`,
+      `↻ ${assists.rotations} rotation control${assists.rotations===1?'':'s'} used · 🌈 ${assists.shifts} color wheel${assists.shifts===1?'':'s'} used`,
       '',
       'Can you beat my score?',
       currentPuzzleUrl()
