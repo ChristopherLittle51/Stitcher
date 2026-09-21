@@ -63,15 +63,15 @@
     const key=`${hue}${shade}`;
     const stroke='#173b70';
     if(key==='00'){
-      return `<circle cx="${cx}" cy="${cy}" r="8" fill="none" stroke="${stroke}" stroke-width="2.4" opacity=".82"/>`;
+      return `<circle class="colorblind-cell-shape" cx="${cx}" cy="${cy}" r="8" fill="none" stroke="${stroke}" stroke-width="2.4" opacity=".82"/>`;
     }
     if(key==='01'){
-      return `<rect x="${cx-8}" y="${cy-8}" width="16" height="16" rx="1.5" fill="none" stroke="${stroke}" stroke-width="2.4" opacity=".82"/>`;
+      return `<rect class="colorblind-cell-shape" x="${cx-8}" y="${cy-8}" width="16" height="16" rx="1.5" fill="none" stroke="${stroke}" stroke-width="2.4" opacity=".82"/>`;
     }
     if(key==='10'){
-      return `<polygon points="${cx},${cy-9} ${cx-9},${cy+8} ${cx+9},${cy+8}" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linejoin="round" opacity=".82"/>`;
+      return `<polygon class="colorblind-cell-shape" points="${cx},${cy-9} ${cx-9},${cy+8} ${cx+9},${cy+8}" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linejoin="round" opacity=".82"/>`;
     }
-    return `<polygon points="${cx},${cy-10} ${cx-10},${cy} ${cx},${cy+10} ${cx+10},${cy}" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linejoin="round" opacity=".82"/>`;
+    return `<polygon class="colorblind-cell-shape" points="${cx},${cy-10} ${cx-10},${cy} ${cx},${cy+10} ${cx+10},${cy}" fill="none" stroke="${stroke}" stroke-width="2.4" stroke-linejoin="round" opacity=".82"/>`;
   }
 
   function shiftAngle(shift){
@@ -242,7 +242,7 @@
     const pipCanonical=shiftPipPoint(grid.shift,markerCanonical.x,markerCanonical.y,15);
     const dot=rotatePoint(markerCanonical.x,markerCanonical.y,cx,cy,rotation);
     const pip=rotatePoint(pipCanonical.x,pipCanonical.y,cx,cy,rotation);
-    return `<svg viewBox="0 0 ${total} ${total}" role="img" aria-label="Stitch cipher grid"><g transform="rotate(${rotation} ${cx} ${cy})">${inner}</g><circle cx="${dot.x}" cy="${dot.y}" r="9" fill="${hue0(grid.shift).hex}" stroke="#173b70" stroke-width="2"/><circle cx="${pip.x}" cy="${pip.y}" r="3.4" fill="#173b70" stroke="#fffdf8" stroke-width="1.2"/></svg>`;
+    return `<svg viewBox="0 0 ${total} ${total}" role="img" aria-label="Stitch cipher grid"><g transform="rotate(${rotation} ${cx} ${cy})">${inner}</g><circle cx="${dot.x}" cy="${dot.y}" r="9" fill="${hue0(grid.shift).hex}" stroke="#173b70" stroke-width="2"/><circle class="colorblind-shift-pip" cx="${pip.x}" cy="${pip.y}" r="3.4" fill="#173b70" stroke="#fffdf8" stroke-width="1.2"/></svg>`;
   }
 
   function bytesToBase64Url(bytes){
