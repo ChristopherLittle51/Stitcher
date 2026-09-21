@@ -124,6 +124,8 @@ h3{font-size:1.05rem}
 .hint-item.used .hint-trigger{background:var(--paper)}
 .hint-item.used .hint-cost{color:var(--muted)}
 .field-group{margin-bottom:16px}
+.creator-key-defaults{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.creator-key-defaults .field-group{margin-bottom:8px}
 .field-note,.status-line{color:var(--muted);font-size:.82rem;line-height:1.45;margin-top:6px}
 .creator-actions{display:flex;gap:10px;flex-wrap:wrap}
 .share-panel p{color:var(--muted);line-height:1.55}
@@ -166,7 +168,7 @@ footer{
   .hero{padding-top:20px}
   .challenge-heading{align-items:start}
   .rules-grid{grid-template-columns:1fr}
-  .grid-control-row{grid-template-columns:1fr}
+  .grid-control-row,.creator-key-defaults{grid-template-columns:1fr}
   .alphabet-table{grid-template-columns:1fr}
   .wheel-key{grid-template-columns:1fr}
   .rules-hint-row{grid-template-columns:38px 1fr 48px}
