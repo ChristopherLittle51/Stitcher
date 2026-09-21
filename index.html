@@ -32,7 +32,7 @@
       <div class="hero">
         <div class="eyebrow">A two-layer visual cipher</div>
         <h1>Read the stitches.<br>Read the colors.</h1>
-        <p class="hero-copy">Every 5×5 block can hide two separate messages at once. Solve the grid with no hints for 100 points, or spend points when you get stuck.</p>
+        <p class="hero-copy">Every 5×5 block can hide two separate messages at once. Start at 100 points and only spend points when you ask Stitcher to reveal puzzle-specific information.</p>
       </div>
 
       <div id="challenge-empty" class="panel centered-panel">
@@ -57,9 +57,13 @@
         <section class="annotation-toolbar panel" aria-label="Puzzle annotation controls">
           <div>
             <strong>Tap-to-decode worksheet</strong>
-            <p>Tap any stitch segment or gap to cycle ? → 0 → 1. For colored squares, choose whether you are marking the hue bit or shade bit.</p>
+            <p>Mark your own 0/1 guesses for free, or switch to Reveal mode when you want Stitcher to supply the correct bit for 1 point.</p>
           </div>
           <div class="annotation-actions">
+            <div class="annotation-mode" role="group" aria-label="Marker assistance mode">
+              <button id="mark-bits" class="annotation-mode-button active" type="button" aria-pressed="true">Mark bits</button>
+              <button id="reveal-bits" class="annotation-mode-button" type="button" aria-pressed="false">Reveal bit · −1</button>
+            </div>
             <div class="annotation-mode" role="group" aria-label="Square annotation mode">
               <button id="annotate-hue" class="annotation-mode-button active" type="button" aria-pressed="true">Hue bits</button>
               <button id="annotate-shade" class="annotation-mode-button" type="button" aria-pressed="false">Shade bits</button>
@@ -68,7 +72,7 @@
           </div>
         </section>
 
-        <p class="annotation-note">Completed groups show the direct 5-bit alphabet symbol <strong>before</strong> reversing the grid's color-wheel shift.</p>
+        <p class="annotation-note">Manual marks are free. Paid reveals stay highlighted. Completed groups show the direct 5-bit alphabet symbol <strong>before</strong> reversing the grid's color-wheel shift.</p>
 
         <div id="challenge-grids" class="grid-gallery" aria-live="polite"></div>
 
@@ -91,9 +95,9 @@
             <div class="hint-heading">
               <div>
                 <h3>Hints</h3>
-                <p>Reveal only what you need. Each hint permanently reduces your score.</p>
+                <p>General hints are free. Your score only drops when Stitcher reveals puzzle-specific bits, rotation, or color shift.</p>
               </div>
-              <span id="points-left" class="points-pill">100 pts</span>
+              <span id="points-left" class="points-pill">Free</span>
             </div>
             <div id="hint-list" class="hint-list"></div>
           </aside>
@@ -259,8 +263,15 @@
       </section>
 
       <section class="panel scoring-rules">
-        <h2>100-point hint system</h2>
-        <p>Hints can be taken in any order. Their costs reflect how much of the puzzle mechanic they reveal.</p>
+        <h2>100-point information score</h2>
+        <p>You begin with 100 points. Reading rules, using colorblind mode, making your own guesses, and opening hints are free. Points are only spent when Stitcher supplies correct puzzle-specific information.</p>
+        <div class="score-cost-grid">
+          <div><strong>Reveal one 0/1 marker</strong><span>−1 point</span></div>
+          <div><strong>Orient one grid upright</strong><span>−2 points</span></div>
+          <div><strong>Reveal one grid's color shift</strong><span>−4 points</span></div>
+        </div>
+        <p class="field-note">A previously revealed item never charges twice. Score stops at 0, so the puzzle remains solvable even after using every assist.</p>
+        <h3>Free hints</h3>
         <div id="rules-hint-table" class="rules-hint-table"></div>
       </section>
     </section>
@@ -271,7 +282,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=7"></script>
-  <script src="./app.js?v=7"></script>
+  <script src="./cipher.js?v=8"></script>
+  <script src="./app.js?v=8"></script>
 </body>
 </html>
