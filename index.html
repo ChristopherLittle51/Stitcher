@@ -32,7 +32,7 @@
       <div class="hero">
         <div class="eyebrow">A two-layer visual cipher</div>
         <h1>Read the stitches.<br>Read the colors.</h1>
-        <p class="hero-copy">Every 5×5 block can hide two separate messages at once. Start at 100 points and only spend points when you ask Stitcher to reveal puzzle-specific information.</p>
+        <p class="hero-copy">Every 5×5 block can hide two separate messages at once. Your theoretical maximum score scales with the cipher's length, and points are only spent when you ask Stitcher to reveal puzzle-specific information.</p>
       </div>
 
       <div id="challenge-empty" class="panel centered-panel">
@@ -50,7 +50,7 @@
           </div>
           <div class="score-card">
             <span>Score</span>
-            <strong id="score-value">100</strong>
+            <strong id="score-value">0 / 0</strong>
           </div>
         </section>
 
@@ -263,14 +263,14 @@
       </section>
 
       <section class="panel scoring-rules">
-        <h2>100-point information score</h2>
-        <p>You begin with 100 points. Reading rules, using colorblind mode, making your own guesses, and opening hints are free. Points are only spent when Stitcher supplies correct puzzle-specific information.</p>
+        <h2>Information score</h2>
+        <p>Your theoretical maximum scales with the actual cipher length: <strong>5 points per line-message character + 5 points per color-message character + 2 rotation points and 4 color-shift points per grid.</strong> Reading rules, using colorblind mode, making your own guesses, and opening hints are free.</p>
         <div class="score-cost-grid">
           <div><strong>Reveal one 0/1 marker</strong><span>−1 point</span></div>
           <div><strong>Orient one grid upright</strong><span>−2 points</span></div>
           <div><strong>Reveal one grid's color shift</strong><span>−4 points</span></div>
         </div>
-        <p class="field-note">A previously revealed item never charges twice. Score stops at 0, so the puzzle remains solvable even after using every assist.</p>
+        <p class="field-note">Padding in the final partially used grid does not increase the theoretical maximum. A previously revealed item never charges twice, and score stops at 0.</p>
         <h3>Free hints</h3>
         <div id="rules-hint-table" class="rules-hint-table"></div>
       </section>
@@ -282,7 +282,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=8"></script>
-  <script src="./app.js?v=8"></script>
+  <script src="./cipher.js?v=9"></script>
+  <script src="./app.js?v=9"></script>
 </body>
 </html>
