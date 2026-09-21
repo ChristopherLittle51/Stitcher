@@ -189,6 +189,14 @@
     return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');
   }
 
+  function bitsToValue(bits){
+    return parseInt(bits.join(''),2);
+  }
+
+  function valueToBits(value){
+    return Number(value).toString(2).padStart(5,'0').slice(-5).split('').map(Number);
+  }
+
   async function buildChallenge(title,lineRaw,colorRaw,keys){
     const line=normalizeAnswer(lineRaw);
     const color=normalizeAnswer(colorRaw);
@@ -202,10 +210,12 @@
       const color10=segment(color,i*10,10);
       const grid=encodeGrid(line12,color10,normalizedKeys[i].shift);
       return {
-        h:grid.hBits,
-        v:grid.vBits,
-        r:grid.rowBits,
-        c:grid.colBits,
+        d:[
+          ...grid.hBits.map(bitsToValue),
+          ...grid.vBits.map(bitsToValue),
+          ...grid.rowBits.map(bitsToValue),
+          ...grid.colBits.map(bitsToValue)
+        ],
         s:normalizedKeys[i].shift,
         o:normalizedKeys[i].rotation
       };
@@ -222,6 +232,15 @@
   }
 
   function gridFromPayloadGrid(g){
+    if(Array.isArray(g.d)){
+      return {
+        hBits:g.d.slice(0,6).map(valueToBits),
+        vBits:g.d.slice(6,12).map(valueToBits),
+        rowBits:g.d.slice(12,17).map(valueToBits),
+        colBits:g.d.slice(17,22).map(valueToBits),
+        shift:Number(g.s)
+      };
+    }
     return {
       hBits:g.h,
       vBits:g.v,
@@ -238,7 +257,7 @@
   window.StitcherCipher = {
     ALPHABET,INDEX,WHEEL,SHIFTS,ROTATIONS,HINTS,
     mod,hue0,hue1,colorsFor,sanitize,normalizeAnswer,
-    charIndex,shiftedIndex,bitsFor,shiftedChar,
+    charIndex,shiftedIndex,bitsFor,shiftedChar,bitsToValue,valueToBits,
     segment,requiredGridCount,encodeGrid,svgMarkup,
     encodePayload,decodePayload,buildChallenge,gridFromPayloadGrid,
     checkAnswer
