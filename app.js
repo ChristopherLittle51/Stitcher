@@ -19,6 +19,8 @@
   const lineResult = $('#line-result');
   const colorResult = $('#color-result');
   const finalResult = $('#final-result');
+  const markBits = $('#mark-bits');
+  const revealBits = $('#reveal-bits');
   const annotateHue = $('#annotate-hue');
   const annotateShade = $('#annotate-shade');
   const clearAnnotations = $('#clear-annotations');
@@ -42,7 +44,9 @@
   let score = 100;
   let creatorKeys = [];
   let annotationMode = 'hue';
+  let assistMode = 'mark';
   let annotationState = [];
+  const REVEAL_COSTS = {bit:1,rotation:2,shift:4};
 
   function setColorblindMode(enabled){
     const on=Boolean(enabled);
@@ -55,15 +59,7 @@
     try{ return localStorage.getItem('stitcher-colorblind-mode')==='1'; }catch{ return false; }
   }
 
-  function switchView(name, options={}){
-    if(name!=='play' && activeChallenge && score>0 && !options.force){
-      const ok = confirm('Leaving the scored solver exposes cipher mechanics. Continuing will set this challenge score to 0. Continue?');
-      if(!ok) return;
-      usedHints = new Set(C.HINTS.map(h=>h.id));
-      score = 0;
-      updateScore();
-      renderHints();
-    }
+  function switchView(name){
     views.forEach(v=>v.classList.toggle('active',v.dataset.viewPanel===name));
     navButtons.forEach(b=>b.classList.toggle('active',b.dataset.view===name));
     window.scrollTo({top:0,behavior:'smooth'});
@@ -107,7 +103,7 @@
     C.HINTS.forEach(h=>{
       const row=document.createElement('div');
       row.className='rules-hint-row';
-      row.innerHTML=`<span>#${h.id}</span><strong>${h.title}</strong><strong>−${h.cost}</strong>`;
+      row.innerHTML=`<span>#${h.id}</span><strong>${h.title}</strong><strong>Free</strong>`;
       hintTable.appendChild(row);
     });
 
@@ -124,13 +120,39 @@
     return Array.from({length:rows},()=>Array(cols).fill(null));
   }
 
+  function createBoolMatrix(rows,cols){
+    return Array.from({length:rows},()=>Array(cols).fill(false));
+  }
+
   function createAnnotationState(){
     return {
       h:makeMatrix(6,5),
       v:makeMatrix(6,5),
       hue:makeMatrix(5,5),
-      shade:makeMatrix(5,5)
+      shade:makeMatrix(5,5),
+      revealed:{
+        h:createBoolMatrix(6,5),
+        v:createBoolMatrix(6,5),
+        hue:createBoolMatrix(5,5),
+        shade:createBoolMatrix(5,5)
+      },
+      rotationRevealed:false,
+      shiftRevealed:false
     };
+  }
+
+  function spendPoints(cost){
+    score=Math.max(0,score-cost);
+    updateScore();
+  }
+
+  function truePuzzleBit(index,kind,r,c){
+    const grid=C.gridFromPayloadGrid(activeChallenge.grids[index]);
+    if(kind==='h') return grid.hBits[r][c];
+    if(kind==='v') return grid.vBits[c][r];
+    if(kind==='hue') return grid.rowBits[r][c];
+    if(kind==='shade') return grid.colBits[c][r];
+    return null;
   }
 
   function cycleBit(value){
@@ -204,6 +226,8 @@
       text.textContent=value===null?'':String(value);
       bg.setAttribute('visibility',value===null?'hidden':'visible');
       target.classList.toggle('marked',value!==null);
+      const revealed=kind==='h' ? state.revealed.h[r][c] : state.revealed.v[c][r];
+      target.classList.toggle('revealed',revealed);
     });
 
     card.querySelectorAll('.cell-annotation-target').forEach(target=>{
@@ -217,6 +241,8 @@
       shadeLabel.textContent=shade===null?'':`S${shade}`;
       target.classList.toggle('has-hue-mark',hue!==null);
       target.classList.toggle('has-shade-mark',shade!==null);
+      hueLabel.classList.toggle('revealed',state.revealed.hue[r][c]);
+      shadeLabel.classList.toggle('revealed',state.revealed.shade[r][c]);
     });
 
     card.querySelectorAll('.decoded-symbol').forEach(chip=>{
@@ -237,8 +263,26 @@
         const kind=lineTarget.dataset.kind;
         const r=Number(lineTarget.dataset.r);
         const c=Number(lineTarget.dataset.c);
-        if(kind==='h') annotationState[index].h[r][c]=cycleBit(annotationState[index].h[r][c]);
-        else annotationState[index].v[c][r]=cycleBit(annotationState[index].v[c][r]);
+        const state=annotationState[index];
+        const revealed=kind==='h' ? state.revealed.h[r][c] : state.revealed.v[c][r];
+
+        if(assistMode==='reveal'){
+          if(!revealed){
+            const value=truePuzzleBit(index,kind,r,c);
+            if(kind==='h'){
+              state.h[r][c]=value;
+              state.revealed.h[r][c]=true;
+            }else{
+              state.v[c][r]=value;
+              state.revealed.v[c][r]=true;
+            }
+            spendPoints(REVEAL_COSTS.bit);
+          }
+        }else if(!revealed){
+          if(kind==='h') state.h[r][c]=cycleBit(state.h[r][c]);
+          else state.v[c][r]=cycleBit(state.v[c][r]);
+        }
+
         syncAnnotationCard(card,index);
         return;
       }
@@ -247,11 +291,33 @@
       if(cellTarget && card.contains(cellTarget)){
         const r=Number(cellTarget.dataset.r);
         const c=Number(cellTarget.dataset.c);
-        const bucket=annotationMode==='shade' ? annotationState[index].shade : annotationState[index].hue;
-        bucket[r][c]=cycleBit(bucket[r][c]);
+        const kind=annotationMode==='shade'?'shade':'hue';
+        const state=annotationState[index];
+        const bucket=kind==='shade'?state.shade:state.hue;
+        const revealed=state.revealed[kind][r][c];
+
+        if(assistMode==='reveal'){
+          if(!revealed){
+            bucket[r][c]=truePuzzleBit(index,kind,r,c);
+            state.revealed[kind][r][c]=true;
+            spendPoints(REVEAL_COSTS.bit);
+          }
+        }else if(!revealed){
+          bucket[r][c]=cycleBit(bucket[r][c]);
+        }
+
         syncAnnotationCard(card,index);
       }
     });
+  }
+
+  function setAssistMode(mode){
+    assistMode=mode==='reveal'?'reveal':'mark';
+    markBits.classList.toggle('active',assistMode==='mark');
+    revealBits.classList.toggle('active',assistMode==='reveal');
+    markBits.setAttribute('aria-pressed',String(assistMode==='mark'));
+    revealBits.setAttribute('aria-pressed',String(assistMode==='reveal'));
+    challengeGrids.dataset.assistMode=assistMode;
   }
 
   function setAnnotationMode(mode){
@@ -264,7 +330,15 @@
   }
 
   function clearAllAnnotations(){
-    annotationState=annotationState.map(()=>createAnnotationState());
+    annotationState.forEach(state=>{
+      ['h','v','hue','shade'].forEach(kind=>{
+        for(let r=0;r<state[kind].length;r++){
+          for(let c=0;c<state[kind][r].length;c++){
+            if(!state.revealed[kind][r][c]) state[kind][r][c]=null;
+          }
+        }
+      });
+    });
     challengeGrids.querySelectorAll('.cipher-card').forEach((card,index)=>syncAnnotationCard(card,index));
   }
 
@@ -282,6 +356,42 @@
     card.appendChild(visual);
 
     if(interactive){
+      const assists=document.createElement('div');
+      assists.className='grid-assists';
+
+      const rotationButton=document.createElement('button');
+      rotationButton.type='button';
+      rotationButton.className='grid-assist-button';
+      rotationButton.textContent=`Orient upright · −${REVEAL_COSTS.rotation}`;
+      rotationButton.addEventListener('click',()=>{
+        const state=annotationState[index];
+        if(state.rotationRevealed) return;
+        if(!confirm(`Spend ${REVEAL_COSTS.rotation} points to orient Grid ${index+1} upright?`)) return;
+        state.rotationRevealed=true;
+        spendPoints(REVEAL_COSTS.rotation);
+        visual.innerHTML=C.svgMarkup(grid,0,{interactive:true});
+        rotationButton.textContent=`Upright · was ${rotation}°`;
+        rotationButton.disabled=true;
+        syncAnnotationCard(card,index);
+      });
+
+      const shiftButton=document.createElement('button');
+      shiftButton.type='button';
+      shiftButton.className='grid-assist-button';
+      shiftButton.textContent=`Reveal color shift · −${REVEAL_COSTS.shift}`;
+      shiftButton.addEventListener('click',()=>{
+        const state=annotationState[index];
+        if(state.shiftRevealed) return;
+        if(!confirm(`Spend ${REVEAL_COSTS.shift} points to reveal Grid ${index+1}'s color shift?`)) return;
+        state.shiftRevealed=true;
+        spendPoints(REVEAL_COSTS.shift);
+        shiftButton.textContent=`Color shift ${grid.shift>=0?'+':''}${grid.shift}`;
+        shiftButton.disabled=true;
+      });
+
+      assists.append(rotationButton,shiftButton);
+      card.insertBefore(assists,visual);
+
       const worksheet=createAnnotationWorksheet(index);
       card.appendChild(worksheet);
       attachAnnotationInteractions(card,index);
@@ -421,7 +531,7 @@
 
   function updateScore(){
     scoreValue.textContent=String(score);
-    pointsLeft.textContent=`${score} pts`;
+    pointsLeft.textContent='Free';
   }
 
   function renderAlphabetHint(body,h){
@@ -450,18 +560,14 @@
       const trigger=document.createElement('button');
       trigger.className='hint-trigger';
       trigger.type='button';
-      trigger.innerHTML=`<span><strong>Hint ${h.id}: ${h.title}</strong></span><span class="hint-cost">${used?'used':'−'+h.cost+' pts'}</span>`;
+      trigger.innerHTML=`<span><strong>Hint ${h.id}: ${h.title}</strong></span><span class="hint-cost">${used?'shown':'Free'}</span>`;
       const body=document.createElement('div');
       body.className='hint-body';
       if(h.id===10) renderAlphabetHint(body,h);
       else body.textContent=h.text;
       trigger.addEventListener('click',()=>{
         if(!usedHints.has(h.id)){
-          const ok=confirm(`Reveal “${h.title}” for ${h.cost} points?`);
-          if(!ok) return;
           usedHints.add(h.id);
-          score=Math.max(0,score-h.cost);
-          updateScore();
           renderHints();
         }
       });
@@ -477,6 +583,7 @@
     score=100;
     annotationState=payload.grids.map(()=>createAnnotationState());
     setAnnotationMode('hue');
+    setAssistMode('mark');
     updateScore();
     renderHints();
 
@@ -495,7 +602,7 @@
       challengeGrids.appendChild(createCipherCard(grid,i,Number(g.o||0),{interactive:true}));
     });
 
-    switchView('play',{force:true});
+    switchView('play');
   }
 
   async function checkAnswers(){
@@ -548,6 +655,8 @@
 
   colorblindToggle.addEventListener('change',()=>setColorblindMode(colorblindToggle.checked));
 
+  markBits.addEventListener('click',()=>setAssistMode('mark'));
+  revealBits.addEventListener('click',()=>setAssistMode('reveal'));
   annotateHue.addEventListener('click',()=>setAnnotationMode('hue'));
   annotateShade.addEventListener('click',()=>setAnnotationMode('shade'));
   clearAnnotations.addEventListener('click',clearAllAnnotations);
@@ -562,6 +671,7 @@
   defaultRotation.addEventListener('change',()=>buildCreator(true));
 
   setColorblindMode(initialColorblindMode());
+  setAssistMode('mark');
   setAnnotationMode('hue');
   fillReference();
   renderHints();
