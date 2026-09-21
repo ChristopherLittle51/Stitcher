@@ -143,7 +143,53 @@
     };
   }
 
-  function svgMarkup(grid,rotation=0){
+  function annotationOverlayMarkup(step,pad){
+    let out='<g class="annotation-overlay">';
+
+    for(let r=0;r<5;r++){
+      for(let c=0;c<5;c++){
+        const x=pad+c*step;
+        const y=pad+r*step;
+        out += `<g class="cell-annotation-target" data-r="${r}" data-c="${c}" role="button" aria-label="Annotate color cell row ${r+1} column ${c+1}">
+          <rect class="annotation-cell-hit" x="${x+8}" y="${y+8}" width="${step-16}" height="${step-16}" rx="6" fill="transparent"/>
+          <text class="cell-bit-label hue-bit-label" data-role="hue" x="${x+10}" y="${y+18}" text-anchor="start"></text>
+          <text class="cell-bit-label shade-bit-label" data-role="shade" x="${x+step-10}" y="${y+step-9}" text-anchor="end"></text>
+        </g>`;
+      }
+    }
+
+    for(let r=0;r<6;r++){
+      for(let c=0;c<5;c++){
+        const y=pad+r*step;
+        const x1=pad+c*step+10;
+        const x2=pad+(c+1)*step-10;
+        const mx=(x1+x2)/2;
+        out += `<g class="line-annotation-target" data-kind="h" data-r="${r}" data-c="${c}" role="button" aria-label="Annotate horizontal segment row ${r+1} segment ${c+1}">
+          <rect class="annotation-line-hit" x="${x1}" y="${y-9}" width="${x2-x1}" height="18" rx="8" fill="transparent"/>
+          <circle class="annotation-bit-bg" cx="${mx}" cy="${y}" r="9" visibility="hidden"/>
+          <text class="annotation-bit-text" x="${mx}" y="${y+4}" text-anchor="middle"></text>
+        </g>`;
+      }
+    }
+
+    for(let c=0;c<6;c++){
+      for(let r=0;r<5;r++){
+        const x=pad+c*step;
+        const y1=pad+r*step+10;
+        const y2=pad+(r+1)*step-10;
+        const my=(y1+y2)/2;
+        out += `<g class="line-annotation-target" data-kind="v" data-r="${r}" data-c="${c}" role="button" aria-label="Annotate vertical segment column ${c+1} segment ${r+1}">
+          <rect class="annotation-line-hit" x="${x-9}" y="${y1}" width="18" height="${y2-y1}" rx="8" fill="transparent"/>
+          <circle class="annotation-bit-bg" cx="${x}" cy="${my}" r="9" visibility="hidden"/>
+          <text class="annotation-bit-text" x="${x}" y="${my+4}" text-anchor="middle"></text>
+        </g>`;
+      }
+    }
+
+    return out+'</g>';
+  }
+
+  function svgMarkup(grid,rotation=0,options={}){
     const step=54,pad=38,total=pad*2+step*5,cx=total/2,cy=total/2;
     const colors=colorsFor(grid.shift);
     let inner='';
@@ -189,6 +235,8 @@
         inner += `<circle cx="${pad+c*step}" cy="${pad+r*step}" r="4" fill="#173b70"/>`;
       }
     }
+
+    if(options.interactive) inner += annotationOverlayMarkup(step,pad);
 
     const markerCanonical={x:pad-19,y:pad-19};
     const pipCanonical=shiftPipPoint(grid.shift,markerCanonical.x,markerCanonical.y,15);
@@ -477,7 +525,7 @@
 
   window.StitcherCipher = {
     ALPHABET,INDEX,WHEEL,SHIFTS,ROTATIONS,CELL_SHAPES,HINTS,
-    mod,hue0,hue1,colorsFor,cellStateShapeMarkup,shiftAngle,shiftPipPoint,sanitize,normalizeAnswer,
+    mod,hue0,hue1,colorsFor,cellStateShapeMarkup,shiftAngle,shiftPipPoint,annotationOverlayMarkup,sanitize,normalizeAnswer,
     charIndex,shiftedIndex,bitsFor,shiftedChar,bitsToValue,valueToBits,
     segment,requiredGridCount,encodeGrid,svgMarkup,
     encodePayload,decodePayload,decodeCompactV4,decodeCompactV3,decodeChallengeMessages,buildChallenge,gridFromPayloadGrid,
