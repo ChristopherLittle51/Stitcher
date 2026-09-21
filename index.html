@@ -14,11 +14,17 @@
       <span class="brand-mark" aria-hidden="true">✣</span>
       <span>Stitcher</span>
     </a>
-    <nav class="main-nav" aria-label="Main navigation">
-      <button class="nav-button active" data-view="play">Play</button>
-      <button class="nav-button" data-view="create">Create</button>
-      <button class="nav-button" data-view="rules">Rules</button>
-    </nav>
+    <div class="header-tools">
+      <label class="colorblind-toggle" for="colorblind-mode">
+        <input id="colorblind-mode" type="checkbox">
+        <span>Colorblind mode</span>
+      </label>
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-button active" data-view="play">Play</button>
+        <button class="nav-button" data-view="create">Create</button>
+        <button class="nav-button" data-view="rules">Rules</button>
+      </nav>
+    </div>
   </header>
 
   <main>
@@ -265,7 +271,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=5"></script>
-  <script src="./app.js?v=5"></script>
+  <script src="./cipher.js?v=6"></script>
+  <script src="./app.js?v=6"></script>
 </body>
 </html>
