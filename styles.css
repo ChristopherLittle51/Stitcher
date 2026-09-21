@@ -123,6 +123,11 @@ h3{font-size:1.05rem}
 .hint-item.used .hint-body{display:block}
 .hint-item.used .hint-trigger{background:var(--paper)}
 .hint-item.used .hint-cost{color:var(--muted)}
+.alphabet-hint-intro{margin-bottom:10px}
+.hint-alphabet-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.hint-alphabet-cell{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border:1px solid rgba(19,45,77,.12);border-radius:8px;background:var(--paper);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem}
+.hint-alphabet-cell span{font-weight:800}
+.hint-alphabet-cell strong{letter-spacing:.04em}
 .field-group{margin-bottom:16px}
 .creator-key-defaults{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .creator-key-defaults .field-group{margin-bottom:8px}
@@ -172,5 +177,6 @@ footer{
   .alphabet-table{grid-template-columns:1fr}
   .wheel-key{grid-template-columns:1fr}
   .rules-hint-row{grid-template-columns:38px 1fr 48px}
+  .hint-alphabet-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   footer{width:min(100% - 22px,1180px);flex-direction:column}
 }
