@@ -242,6 +242,23 @@
     pointsLeft.textContent=`${score} pts`;
   }
 
+  function renderAlphabetHint(body,h){
+    const intro=document.createElement('p');
+    intro.className='alphabet-hint-intro';
+    intro.textContent=h.text;
+    body.appendChild(intro);
+
+    const grid=document.createElement('div');
+    grid.className='hint-alphabet-grid';
+    C.ALPHABET.forEach((ch,i)=>{
+      const cell=document.createElement('div');
+      cell.className='hint-alphabet-cell';
+      cell.innerHTML=`<span>${displayChar(ch)}</span><strong>${i.toString(2).padStart(5,'0')}</strong>`;
+      grid.appendChild(cell);
+    });
+    body.appendChild(grid);
+  }
+
   function renderHints(){
     hintList.innerHTML='';
     C.HINTS.forEach(h=>{
@@ -254,7 +271,8 @@
       trigger.innerHTML=`<span><strong>Hint ${h.id}: ${h.title}</strong></span><span class="hint-cost">${used?'used':'−'+h.cost+' pts'}</span>`;
       const body=document.createElement('div');
       body.className='hint-body';
-      body.textContent=h.text;
+      if(h.id===10) renderAlphabetHint(body,h);
+      else body.textContent=h.text;
       trigger.addEventListener('click',()=>{
         if(!usedHints.has(h.id)){
           const ok=confirm(`Reveal “${h.title}” for ${h.cost} points?`);
