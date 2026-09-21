@@ -372,6 +372,7 @@
     card.appendChild(header);
 
     const visual=document.createElement('div');
+    visual.className='cipher-visual';
     visual.innerHTML=C.svgMarkup(grid,rotation,{interactive});
     card.appendChild(visual);
 
