@@ -198,7 +198,7 @@ footer{
   .rules-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:620px){
-  .site-header{align-items:flex-start;flex-direction:column}
+  .site-header{position:static;align-items:flex-start;flex-direction:column;padding:10px 12px;gap:8px}
   main{width:calc(100% - 8px)}
   #challenge-grids{gap:12px}
   #challenge-grids .cipher-card{padding:10px 4px 14px;border-radius:14px}
