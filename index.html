@@ -177,6 +177,7 @@
           <span class="rule-number">03</span>
           <h2>Color message</h2>
           <p>Across each of five cell rows, the two hues encode five bits. Down each of five columns, light versus dark encodes another five bits.</p>
+          <p><strong>Colorblind support:</strong> every cell also carries a redundant shape — circle = 00, square = 01, triangle = 10, diamond = 11.</p>
         </article>
         <article class="panel rule-card">
           <span class="rule-number">04</span>
@@ -187,7 +188,7 @@
           <span class="rule-number">05</span>
           <h2>Color shift</h2>
           <p>Blue / orange is shift 0. Moving the hue pair around the 12-step color wheel changes every symbol by that signed shift modulo 32.</p>
-          <p>The orientation dot uses the grid's bit-0 hue, so its color identifies the shift.</p>
+          <p>The orientation dot uses the grid's bit-0 hue, so its color identifies the shift. A small pip around the dot repeats the same 12-step shift like a clock: 0 at 12 o’clock, positive shifts clockwise, negative shifts counterclockwise.</p>
         </article>
         <article class="panel rule-card">
           <span class="rule-number">06</span>
@@ -205,6 +206,28 @@
           <h2>Color wheel shifts</h2>
           <div id="wheel-key" class="wheel-key"></div>
           <p class="field-note">The first hue is binary hue bit 0. Its complementary hue, six wheel steps away, is binary hue bit 1.</p>
+        </div>
+        <div class="panel">
+          <h2>Colorblind shape key</h2>
+          <div class="shape-key">
+            <div class="shape-key-row">
+              <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="8" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+              <span><strong>Circle</strong><small>Hue 0 · Light · 00</small></span>
+            </div>
+            <div class="shape-key-row">
+              <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="6" y="6" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+              <span><strong>Square</strong><small>Hue 0 · Dark · 01</small></span>
+            </div>
+            <div class="shape-key-row">
+              <svg viewBox="0 0 28 28" aria-hidden="true"><polygon points="14,5 5,22 23,22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg>
+              <span><strong>Triangle</strong><small>Hue 1 · Light · 10</small></span>
+            </div>
+            <div class="shape-key-row">
+              <svg viewBox="0 0 28 28" aria-hidden="true"><polygon points="14,4 24,14 14,24 4,14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg>
+              <span><strong>Diamond</strong><small>Hue 1 · Dark · 11</small></span>
+            </div>
+          </div>
+          <p class="field-note"><strong>Shift marker:</strong> the small pip orbiting the orientation dot gives the hue-wheel position without color. Shift 0 = 12 o’clock; each +1 advances one 30° step clockwise.</p>
         </div>
       </section>
 
