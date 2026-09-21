@@ -91,7 +91,11 @@
           <div class="field-group">
             <label for="creator-title">Challenge title</label>
             <input id="creator-title" type="text" value="Can you decode this?" maxlength="80">
-            <div class="field-note">For the shortest possible self-contained links, the challenge title is not included in v3 share URLs.</div>
+            <label class="inline-option" for="include-title">
+              <input id="include-title" type="checkbox" checked>
+              <span>Include title in shared link</span>
+            </label>
+            <div class="field-note">Turn this off for the shortest possible link. When enabled, the title is packed into the compact challenge data.</div>
           </div>
 
           <div class="field-group">
@@ -245,7 +249,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=3"></script>
-  <script src="./app.js?v=3"></script>
+  <script src="./cipher.js?v=4"></script>
+  <script src="./app.js?v=4"></script>
 </body>
 </html>
