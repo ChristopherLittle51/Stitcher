@@ -91,6 +91,7 @@
           <div class="field-group">
             <label for="creator-title">Challenge title</label>
             <input id="creator-title" type="text" value="Can you decode this?" maxlength="80">
+            <div class="field-note">For the shortest possible self-contained links, the challenge title is not included in v3 share URLs.</div>
           </div>
 
           <div class="field-group">
@@ -132,7 +133,7 @@
 
         <section class="panel share-panel">
           <h3>Share it</h3>
-          <p>The challenge URL contains the rendered grid data and answer hashes, not the plaintext answers.</p>
+          <p>New challenge links use a tightly packed binary format. They contain only the puzzle data needed to render and verify the grid — no literal plaintext answers.</p>
           <button id="make-link" class="primary-button wide-button">Generate challenge link</button>
           <div id="share-output" hidden>
             <label for="share-url">Challenge URL</label>
@@ -244,6 +245,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js"></script>\n  <script src="./app.js"></script>
+  <script src="./cipher.js?v=3"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>
