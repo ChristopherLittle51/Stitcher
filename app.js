@@ -19,6 +19,9 @@
   const lineResult = $('#line-result');
   const colorResult = $('#color-result');
   const finalResult = $('#final-result');
+  const resultShare = $('#result-share');
+  const shareResultButton = $('#share-result');
+  const shareResultStatus = $('#share-result-status');
   const markBits = $('#mark-bits');
   const revealBits = $('#reveal-bits');
   const annotateHue = $('#annotate-hue');
@@ -629,6 +632,8 @@
     lineResult.textContent='';
     colorResult.textContent='';
     finalResult.textContent='';
+    resultShare.hidden=true;
+    shareResultStatus.textContent='';
 
     payload.grids.forEach((g,i)=>{
       const grid=C.gridFromPayloadGrid(g);
@@ -662,9 +667,92 @@
     if(lineOK && colorOK){
       finalResult.textContent=`Solved! ${score}/${maxScore} — ${rankForScore(score,maxScore)}.`;
       finalResult.style.color='var(--good)';
+      resultShare.hidden=false;
     }else{
       finalResult.textContent='Keep going — both messages must be correct to finish.';
       finalResult.style.color='';
+      resultShare.hidden=true;
+    }
+  }
+
+  function assistSummary(){
+    let lineBits=0;
+    let colorBits=0;
+    let rotations=0;
+    let shifts=0;
+
+    annotationState.forEach((state,index)=>{
+      for(let r=0;r<6;r++){
+        for(let c=0;c<5;c++){
+          if(state.revealed.h[r][c] && bitBelongsToMessage(index,'h',r,c)) lineBits++;
+        }
+      }
+      for(let c=0;c<6;c++){
+        for(let r=0;r<5;r++){
+          if(state.revealed.v[c][r] && bitBelongsToMessage(index,'v',r,c)) lineBits++;
+        }
+      }
+      for(let r=0;r<5;r++){
+        for(let c=0;c<5;c++){
+          if(state.revealed.hue[r][c] && bitBelongsToMessage(index,'hue',r,c)) colorBits++;
+          if(state.revealed.shade[r][c] && bitBelongsToMessage(index,'shade',r,c)) colorBits++;
+        }
+      }
+      if(state.rotationRevealed) rotations++;
+      if(state.shiftRevealed) shifts++;
+    });
+
+    return {lineBits,colorBits,rotations,shifts};
+  }
+
+  function currentPuzzleUrl(){
+    const base=location.href.split('#')[0];
+    const hash=location.hash && (location.hash.startsWith('#c=') || location.hash.startsWith('#challenge='))
+      ? location.hash
+      : '';
+    return base+hash;
+  }
+
+  function buildResultShareText(){
+    const assists=assistSummary();
+    const pct=maxScore>0 ? Math.round(score/maxScore*100) : 0;
+    return [
+      `Stitcher ✣ ${score}/${maxScore} · ${pct}%`,
+      `🧵 ${assists.lineBits} line bit${assists.lineBits===1?'':'s'} · 🎨 ${assists.colorBits} color bit${assists.colorBits===1?'':'s'}`,
+      `↻ ${assists.rotations} rotation${assists.rotations===1?'':'s'} · 🌈 ${assists.shifts} shift${assists.shifts===1?'':'s'}`,
+      '',
+      'Can you beat my score?',
+      currentPuzzleUrl()
+    ].join('\n');
+  }
+
+  async function shareResult(){
+    const text=buildResultShareText();
+    shareResultStatus.textContent='';
+    try{
+      if(navigator.share){
+        await navigator.share({text});
+        shareResultStatus.textContent='Shared.';
+        return;
+      }
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+        shareResultStatus.textContent='Result copied.';
+        return;
+      }
+      const temp=document.createElement('textarea');
+      temp.value=text;
+      temp.setAttribute('readonly','');
+      temp.style.position='absolute';
+      temp.style.left='-9999px';
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      temp.remove();
+      shareResultStatus.textContent='Result copied.';
+    }catch(err){
+      if(err && err.name==='AbortError') return;
+      shareResultStatus.textContent='Could not share automatically. Try again or copy the puzzle link.';
     }
   }
 
@@ -699,6 +787,7 @@
   $('#make-link').addEventListener('click',makeChallengeLink);
   $('#copy-link').addEventListener('click',copyChallengeLink);
   $('#check-answer').addEventListener('click',checkAnswers);
+  shareResultButton.addEventListener('click',shareResult);
 
   defaultShift.addEventListener('change',()=>buildCreator(true));
   defaultRotation.addEventListener('change',()=>buildCreator(true));
