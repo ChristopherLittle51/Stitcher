@@ -72,7 +72,7 @@
           </div>
         </section>
 
-        <p class="annotation-note">Manual marks are free. Paid reveals stay highlighted. Completed groups show the direct 5-bit alphabet symbol <strong>before</strong> reversing the grid's color-wheel shift.</p>
+        <p class="annotation-note">Manual marks, rotation guesses, and color-shift guesses are free. Paid reveals stay highlighted. Completed groups update using your current color-shift guess.</p>
 
         <div id="challenge-grids" class="grid-gallery" aria-live="polite"></div>
 
@@ -271,10 +271,10 @@
         <p>Your theoretical maximum scales with the actual cipher length: <strong>5 points per line-message character + 5 points per color-message character + 2 rotation points and 4 color-shift points per grid.</strong> Reading rules, using colorblind mode, making your own guesses, and opening hints are free.</p>
         <div class="score-cost-grid">
           <div><strong>Reveal one 0/1 marker</strong><span>−1 point</span></div>
-          <div><strong>Orient one grid upright</strong><span>−2 points</span></div>
-          <div><strong>Reveal one grid's color shift</strong><span>−4 points</span></div>
+          <div><strong>Reveal the correct orientation</strong><span>−2 points</span></div>
+          <div><strong>Reveal the correct color shift</strong><span>−4 points</span></div>
         </div>
-        <p class="field-note">Padding in the final partially used grid does not increase the theoretical maximum. A previously revealed item never charges twice, and score stops at 0.</p>
+        <p class="field-note">You can freely try any rotation or color shift. Points are only deducted when Stitcher supplies the correct value. Padding in the final partially used grid does not increase the theoretical maximum, and a previously revealed item never charges twice.</p>
         <h3>Free hints</h3>
         <div id="rules-hint-table" class="rules-hint-table"></div>
       </section>
@@ -286,7 +286,7 @@
     <span>Hitomezashi-inspired grid cipher puzzles</span>
   </footer>
 
-  <script src="./cipher.js?v=10"></script>
-  <script src="./app.js?v=10"></script>
+  <script src="./cipher.js?v=11"></script>
+  <script src="./app.js?v=11"></script>
 </body>
 </html>
