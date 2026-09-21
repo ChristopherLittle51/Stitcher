@@ -228,6 +228,15 @@
     }
   }
 
+  function rankForScore(value){
+    if(value>=90) return 'Master Decoder';
+    if(value>=75) return 'Codebreaker';
+    if(value>=50) return 'Pattern Hunter';
+    if(value>=25) return 'Persistent Solver';
+    if(value>=1) return 'Made It Out Alive';
+    return 'Tutorial Complete';
+  }
+
   function updateScore(){
     scoreValue.textContent=String(score);
     pointsLeft.textContent=`${score} pts`;
@@ -300,7 +309,7 @@
     colorResult.className='answer-result '+(colorOK?'good':'bad');
 
     if(lineOK && colorOK){
-      finalResult.textContent=`Solved! Final score: ${score}/100.`;
+      finalResult.textContent=`Solved! ${score}/100 — ${rankForScore(score)}.`;
       finalResult.style.color='var(--good)';
     }else{
       finalResult.textContent='Keep going — both messages must be correct to finish.';
