@@ -29,6 +29,7 @@ jobs:
           node --check cipher.js
           node --check app.js
           node --check classic.js
+          node --check classic-patch.js
           node --check classic-ui.js
 
       - name: Smoke test Classic codec
@@ -36,6 +37,7 @@ jobs:
           node <<'NODE'
           global.window = {};
           require('./classic.js');
+          require('./classic-patch.js');
           const C = global.window.StitcherClassic;
           const challenge = C.buildChallenge('Classic test', 'MEET ME AFTER MIDNIGHT', 'BRING THE KEY', 0);
           const encoded = C.encodePayload(challenge, {includeTitle: true});
@@ -45,7 +47,13 @@ jobs:
           if (expected.color !== 'BRING THE KEY') throw new Error(`Classic shade round trip failed: ${expected.color}`);
           const regions = C.enclosedRegions(decoded.hPhases, decoded.vPhases);
           if (regions.length < decoded.colorLength * 5) throw new Error('Classic generator did not create enough enclosed regions.');
-          console.log(`Classic smoke test passed: ${decoded.hPhases.length}x${decoded.vPhases.length} tracks, ${regions.length} enclosed regions.`);
+
+          const stitchOnly = C.buildChallenge('Stitch only', 'HELLO', '', 0);
+          const stitchOnlyRegions = C.enclosedRegions(stitchOnly.hPhases, stitchOnly.vPhases);
+          if (stitchOnly.colorLength !== 0 || stitchOnly.surfaceBits.length !== 0) throw new Error('Stitch-only fallback leaked placeholder surface data.');
+          if (stitchOnlyRegions.length < 5) throw new Error('Stitch-only Classic puzzle did not preserve enclosed geometry.');
+
+          console.log(`Classic smoke test passed: ${decoded.hPhases.length}x${decoded.vPhases.length} tracks, ${regions.length} enclosed regions; stitch-only fallback has ${stitchOnlyRegions.length}.`);
           NODE
 
       - name: Assemble site
