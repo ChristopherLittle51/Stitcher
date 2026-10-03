@@ -4,13 +4,14 @@ p = Path('index.html')
 s = p.read_text(encoding='utf-8')
 
 if 'classic.css' not in s:
-    s = s.replace('</head>', '  <link rel="stylesheet" href="./classic.css?v=1">\n</head>')
+    s = s.replace('</head>', '  <link rel="stylesheet" href="./classic.css?v=2">\n</head>')
 
 if 'classic.js' not in s:
     s = s.replace(
         '</body>',
-        '  <script src="./classic.js?v=1"></script>\n'
-        '  <script src="./classic-ui.js?v=1"></script>\n'
+        '  <script src="./classic.js?v=2"></script>\n'
+        '  <script src="./classic-patch.js?v=1"></script>\n'
+        '  <script src="./classic-ui.js?v=2"></script>\n'
         '</body>'
     )
 
