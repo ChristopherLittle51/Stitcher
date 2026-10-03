@@ -4,54 +4,84 @@ A Hitomezashi-inspired visual cipher for notebook art and shareable decoding puz
 
 ## Website
 
-The site is ready to deploy at the repository root.
-
-**Expected GitHub Pages URL after Pages is enabled:**  
 https://christopherlittle51.github.io/Stitcher/
 
-GitHub Pages needs to be enabled once for this new repository:
+Pushes to `main` deploy automatically with GitHub Actions.
 
-1. Open **Settings → Pages**.
-2. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-3. Open **Actions → Deploy Stitcher to GitHub Pages** and re-run the failed workflow.
+## Puzzle modes
 
-After that, pushes to `main` deploy automatically.
+### Modern
 
-## How the cipher works
+The original Stitcher mode uses fixed 5×5 color cells bounded by six horizontal and six vertical stitch tracks.
 
-Each 5×5 block carries two independent messages:
+- **Line/stitch message:** 12 characters per grid.
+- **Color message:** 10 characters per grid.
+- **Alphabet:** 32 fixed-width 5-bit symbols — A–Z, space, period, comma, apostrophe, question mark, and ESC.
+- Individual stitch segments are binary data.
+- Hue and shade carry a second independent bitstream.
+- Every grid can use an independent 12-step color-wheel shift and 0°/90°/180°/270° rotation.
 
-- **Line/stitch message:** 12 characters per grid — six horizontal stitch tracks and six vertical stitch tracks.
-- **Color message:** 10 characters per grid — five symbols encoded by hue across rows and five encoded by light/dark shade down columns.
+Modern challenge links use the `#c=` format.
 
-Every symbol is 5 bits. The alphabet is A–Z followed by space, period, comma, apostrophe, question mark, and ESC.
+### Classic Hitomezashi
 
-A stitch segment represents 0 and a gap represents 1. Cell hue carries the color-row bit while light/dark shade carries the color-column bit.
+Classic mode preserves the traditional alternating Hitomezashi structure instead of treating every stitch segment as an independent bit.
 
-Each grid may independently use:
+- Every horizontal and vertical track alternates stitch / gap continuously.
+- The only structural bit on a track is its **starting phase**: starts stitched or starts with a gap.
+- Five track phases form one character.
+- Grid size is arbitrary. The generator expands in five-track groups until the stitch message fits and enough enclosed regions exist for the second message.
+- The generator flood-fills the finished stitch topology and uses only genuinely enclosed regions for surface data.
+- Enclosed regions use two decorative base hues. **Hue is not data.**
+- Light shade = 0 and dark shade = 1.
+- The first five shaded regions make one surface character, the next five make the next character, and so on in top-left reading order.
+- Open fabric areas that reach the outside are left unfilled.
 
-- one of 12 complementary hue pairs as a signed modulo-32 substitution shift;
-- 0°, 90°, 180°, or 270° rotation, indicated by the orientation dot.
+Classic uses a deliberately smaller alphabet: **A–Z + SPACE**. That is 27 symbols, so **5 bits is already the minimum possible fixed-width encoding**. Four bits can represent only 16 values. A variable-length alphabet could reduce average message size, but it would remove the clean rule that every five phases or five shaded regions equals exactly one character.
 
-## Puzzle scoring
+Classic challenge links use the `#k=` format.
 
-Challenges begin at 100 points. Optional hints subtract points based on how much of the mechanic they reveal. The site tracks hint usage and final score locally in the browser.
+## Scoring
+
+Stitcher scores the amount of built-in solving assistance used rather than charging for general hints.
+
+### Modern
+
+The theoretical maximum is based on message length plus per-grid controls.
+
+- Mark one real message bit in the worksheet: −1 point the first time.
+- Use a grid's rotation control: −2 points once.
+- Move a grid's color wheel: −4 points once.
+- General hints, colorblind mode, and typing final answers are free.
+
+### Classic
+
+The theoretical maximum is `5 × (stitch characters + shade characters)`.
+
+- Mark one real track-phase bit: −1 point the first time.
+- Mark one real enclosed-region shade bit: −1 point the first time.
+- General rules/hints and final answer entry are free.
+
+Clearing or changing a bit never refunds points and never charges that same bit twice.
+
+## Sharing
+
+Both modes create self-contained challenge URLs and support spoiler-free result sharing with score, percentage, assist usage, and the original puzzle link.
 
 ## Project structure
 
-- `index.html` — site structure
-- `styles.css` — responsive design
-- `cipher.js` — cipher rules, rendering, challenge serialization, and answer hashing
-- `app.js` — creator, solver, hints, scoring, and share-link UI
-- `.github/workflows/pages.yml` — GitHub Pages deployment
-- `vercel.json` — zero-build Vercel configuration
+- `index.html` — base site structure
+- `styles.css` — Modern responsive design
+- `cipher.js` — Modern cipher engine and serialization
+- `app.js` — Modern creator/solver/scoring/share UI
+- `classic.js` — Classic alternating-track engine, enclosed-region topology, rendering, and compact serialization
+- `classic-ui.js` — Classic creator, solver, scoring, and result sharing
+- `classic.css` — Classic mode styling
+- `.github/workflows/pages.yml` — syntax checks, Classic codec smoke test, site assembly, and GitHub Pages deployment
+- `vercel.json` — zero-build Vercel configuration for the base static site
 
-No build step or backend is required.
-
-## Alternative deployment
-
-The repo is also ready for Vercel, Netlify, or Cloudflare Pages as a static site. No build command is required.
+No backend is required.
 
 ## Important
 
-Stitcher is designed as a fun visual puzzle, not serious cryptography.
+Stitcher is designed as a visual puzzle, not serious cryptography.
