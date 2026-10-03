@@ -24,6 +24,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate JavaScript
+        run: |
+          node --check cipher.js
+          node --check app.js
+          node --check classic.js
+          node --check classic-ui.js
+
+      - name: Smoke test Classic codec
+        run: |
+          node <<'NODE'
+          global.window = {};
+          require('./classic.js');
+          const C = global.window.StitcherClassic;
+          const challenge = C.buildChallenge('Classic test', 'MEET ME AFTER MIDNIGHT', 'BRING THE KEY', 0);
+          const encoded = C.encodePayload(challenge, {includeTitle: true});
+          const decoded = C.decodePayload(encoded);
+          const expected = C.expectedMessages(decoded);
+          if (expected.line !== 'MEET ME AFTER MIDNIGHT') throw new Error(`Classic stitch round trip failed: ${expected.line}`);
+          if (expected.color !== 'BRING THE KEY') throw new Error(`Classic shade round trip failed: ${expected.color}`);
+          const regions = C.enclosedRegions(decoded.hPhases, decoded.vPhases);
+          if (regions.length < decoded.colorLength * 5) throw new Error('Classic generator did not create enough enclosed regions.');
+          console.log(`Classic smoke test passed: ${decoded.hPhases.length}x${decoded.vPhases.length} tracks, ${regions.length} enclosed regions.`);
+          NODE
+
+      - name: Assemble Classic site assets
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          if 'classic.css' not in s:
+              s = s.replace('</head>', '  <link rel="stylesheet" href="./classic.css?v=1">\n</head>')
+          if 'classic.js' not in s:
+              s = s.replace('</body>', '  <script src="./classic.js?v=1"></script>\n  <script src="./classic-ui.js?v=1"></script>\n</body>')
+          p.write_text(s)
+          PY
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
