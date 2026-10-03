@@ -2,6 +2,8 @@
   const C=window.StitcherClassic;
   if(!C) return;
 
+  const MIN_SURFACE_AREA=4;
+
   function hashSeed(text){
     let h=2166136261>>>0;
     for(const ch of String(text||'')){
@@ -45,36 +47,47 @@
       cx:sumC/area,
       minR,maxR,minC,maxC,
       perimeter,
-      compactness:area?16*area/(perimeter*perimeter):0
+      compactness:area?16*area/(perimeter*perimeter):0,
+      width:maxC-minC+1,
+      height:maxR-minR+1
     };
   }
 
-  function beautyScore(regions,hTracks,vTracks,neededRegions,extraGroups=0){
-    if(regions.length<neededRegions) return -Infinity;
+  function surfaceRegions(regions){
+    return regions
+      .filter(region=>region.cells.length>=MIN_SURFACE_AREA)
+      .map((region,surfaceIndex)=>({...region,surfaceIndex}));
+  }
+
+  function beautyScore(regions,hTracks,vTracks,neededSurfaceBits,extraGroups=0){
     if(!regions.length) return -Infinity;
+    const eligible=surfaceRegions(regions);
+    if(eligible.length<neededSurfaceBits) return -Infinity;
+
     const geo=regions.map(regionGeometry);
+    const surfaceGeo=eligible.map(regionGeometry);
     const totalArea=geo.reduce((sum,g)=>sum+g.area,0);
+    const surfaceArea=surfaceGeo.reduce((sum,g)=>sum+g.area,0);
     const singletons=geo.filter(g=>g.area===1).length;
-    const largeArea=geo.filter(g=>g.area>=4).reduce((sum,g)=>sum+g.area,0);
-    const sculpted=geo.filter(g=>g.area>=3&&g.compactness>.22).length;
-    const meanArea=totalArea/geo.length;
+    const largeMotifs=surfaceGeo.filter(g=>g.area>=5).length;
+    const sculpted=surfaceGeo.filter(g=>g.compactness>.18&&(g.width>1||g.height>1)).length;
+    const meanSurfaceArea=surfaceArea/Math.max(1,surfaceGeo.length);
     const singletonRatio=singletons/geo.length;
-    const largeShare=largeArea/Math.max(1,totalArea);
-    const density=totalArea/Math.max(1,(hTracks-1)*(vTracks-1));
+    const surfaceShare=surfaceArea/Math.max(1,totalArea);
     const aspectPenalty=Math.abs(Math.log(hTracks/vTracks));
-    const excessRatio=Math.max(0,regions.length-neededRegions)/Math.max(neededRegions,5);
-    const sizeDiversity=new Set(geo.map(g=>Math.min(g.area,12))).size;
+    const excess=Math.max(0,eligible.length-neededSurfaceBits)/Math.max(neededSurfaceBits,5);
+    const sizeDiversity=new Set(surfaceGeo.map(g=>Math.min(g.area,20))).size;
 
     return (
-      meanArea*9 +
-      largeShare*30 +
-      (1-singletonRatio)*18 +
-      sculpted/geo.length*10 +
-      sizeDiversity*1.25 -
-      Math.abs(density-.30)*14 -
-      aspectPenalty*8 -
-      excessRatio*1.5 -
-      extraGroups*1.2
+      meanSurfaceArea*13 +
+      surfaceShare*26 +
+      (1-singletonRatio)*12 +
+      largeMotifs/Math.max(1,surfaceGeo.length)*18 +
+      sculpted/Math.max(1,surfaceGeo.length)*12 +
+      sizeDiversity*1.5 -
+      aspectPenalty*7 -
+      excess*.8 -
+      extraGroups*.65
     );
   }
 
@@ -83,72 +96,72 @@
     const surface=C.normalize(surfaceText);
     if(line.length>80||surface.length>80) throw new Error('Classic messages are limited to 80 characters each.');
     const lineBits=C.bitsForText(line);
-    const neededRegions=Math.max(surface.length*5,surface.length?0:5);
+    const neededSurfaceBits=Math.max(surface.length*5,surface.length?0:5);
     const neededGroups=Math.max(line.length,2);
-    const baseSeed=hashSeed(line+'|'+surface+'|motif-v2');
+    const baseSeed=hashSeed(line+'|'+surface+'|major-motifs-v3');
     let winner=null;
 
-    // Search the smallest few viable field sizes. A small amount of decorative
-    // phase padding gives the generator room to create larger, cleaner motifs.
-    for(let extraGroups=0;extraGroups<=4;extraGroups++){
+    // Classic surface data now lives only in substantial enclosed motifs.
+    // Allow more decorative padding than the old generator so it can grow the
+    // textile until it has enough crosses/diamonds/islands rather than using
+    // tiny one-cell pockets as data carriers.
+    for(let extraGroups=0;extraGroups<=10;extraGroups++){
       const totalGroups=neededGroups+extraGroups;
       const pairs=[];
       for(let hg=1;hg<totalGroups;hg++) pairs.push([hg,totalGroups-hg]);
       pairs.sort((a,b)=>Math.abs(a[0]-a[1])-Math.abs(b[0]-b[1]));
 
       let bestAtSize=null;
-      for(const [hGroups,vGroups] of pairs.slice(0,Math.min(16,pairs.length))){
+      const pairLimit=Math.min(20,pairs.length);
+      for(const [hGroups,vGroups] of pairs.slice(0,pairLimit)){
         const hTracks=hGroups*5;
         const vTracks=vGroups*5;
-        const attempts=extraGroups===0?1:20;
+        const attempts=extraGroups===0?1:28;
         for(let attempt=0;attempt<attempts;attempt++){
           const seed=(baseSeed+Math.imul(totalGroups+1,2654435761)+Math.imul(attempt+1,1013904223)+hGroups*2246822519)>>>0;
           const phases=candidatePhases(lineBits,hTracks,vTracks,seed);
           const regions=C.enclosedRegions(phases.hPhases,phases.vPhases);
-          if(regions.length<neededRegions) continue;
-          const score=beautyScore(regions,hTracks,vTracks,neededRegions,extraGroups);
-          const candidate={...phases,hTracks,vTracks,regions,seed,beautyScore:score};
+          const eligible=surfaceRegions(regions);
+          if(eligible.length<neededSurfaceBits) continue;
+          const score=beautyScore(regions,hTracks,vTracks,neededSurfaceBits,extraGroups);
+          const candidate={...phases,hTracks,vTracks,regions,surfaceRegions:eligible,seed,beautyScore:score};
           if(!bestAtSize||score>bestAtSize.beautyScore) bestAtSize=candidate;
         }
       }
 
       if(bestAtSize&&(!winner||bestAtSize.beautyScore>winner.beautyScore)) winner=bestAtSize;
-      // Once the current size produces a strong motif field, avoid making an
-      // already-large Classic puzzle grow just for a marginal aesthetic gain.
-      if(bestAtSize&&extraGroups>=1) break;
+      // Once a viable field exists, inspect one additional size before stopping.
+      // This gives the search room to trade a little field area for much nicer motifs.
+      if(winner&&extraGroups>=2){
+        const nextAllowance=extraGroups>=4;
+        if(nextAllowance) break;
+      }
     }
 
     if(winner) return winner;
-    // Keep compatibility with the original exhaustive fallback for unusual inputs.
-    return C.choosePattern(line,surface);
+    throw new Error('Could not create enough substantial enclosed motifs for this Classic shade message. Try a shorter shade message.');
   }
 
   function motifHueAssignments(regions){
     if(!regions.length) return [];
     const geo=regions.map((region,index)=>({...regionGeometry(region),index}));
-    const majors=geo.filter(g=>g.area>1).sort((a,b)=>a.cy-b.cy||a.cx-b.cx||b.area-a.area);
     const hues=Array(regions.length).fill(0);
 
-    if(majors.length){
-      // Large motifs establish the visual rhythm. Alternate them in reading order.
-      majors.forEach((g,i)=>{hues[g.index]=i&1;});
+    // Assign color in broad spatial rhythm rather than by message order. Nearby
+    // motifs tend to share a hue family until the field crosses a coarse band,
+    // which makes the textile read as a composed pattern rather than confetti.
+    geo.forEach(g=>{
+      const bandR=Math.floor(g.cy/8);
+      const bandC=Math.floor(g.cx/8);
+      hues[g.index]=(bandR+bandC)&1;
+    });
 
-      // Tiny pockets become accents belonging to the nearest larger motif rather
-      // than receiving effectively random colors of their own.
-      geo.filter(g=>g.area===1).forEach(g=>{
-        let nearest=majors[0],best=Infinity;
-        majors.forEach(m=>{
-          const dr=g.cy-m.cy,dc=g.cx-m.cx;
-          const distance=dr*dr+dc*dc;
-          if(distance<best){best=distance;nearest=m;}
-        });
-        hues[g.index]=1-hues[nearest.index];
-      });
-    }else{
-      // Rare all-singleton fields use broad spatial bands instead of per-cell noise.
-      geo.forEach(g=>{
-        hues[g.index]=(Math.floor(g.cy/6)+Math.floor(g.cx/6))&1;
-      });
+    // Avoid long same-color runs in reading order without randomizing geometry.
+    for(let i=2;i<geo.length;i++){
+      const a=geo[i-2],b=geo[i-1],c=geo[i];
+      if(hues[a.index]===hues[b.index]&&hues[b.index]===hues[c.index]){
+        hues[c.index]=1-hues[c.index];
+      }
     }
     return hues;
   }
@@ -175,7 +188,8 @@
     const v=challenge.vPhases;
     const rows=h.length-1;
     const cols=v.length-1;
-    const regions=C.enclosedRegions(h,v);
+    const allRegions=C.enclosedRegions(h,v);
+    const regions=surfaceRegions(allRegions);
     const hues=motifHueAssignments(regions);
     const palette=C.PALETTES[((Number(challenge.palette)||0)%C.PALETTES.length+C.PALETTES.length)%C.PALETTES.length];
     const step=26;
@@ -184,12 +198,14 @@
     const height=rows*step+pad*2;
     let body=`<rect x="0" y="0" width="${width}" height="${height}" rx="8" fill="${palette.background}"/>`;
 
+    // Only substantial motifs receive color. Small enclosed pockets remain the
+    // fabric color and are not part of the shade-bit stream.
     regions.forEach((region,i)=>{
-      const shade=C.regionShadeBit(challenge,i);
+      const shade=i<challenge.surfaceBits.length?(challenge.surfaceBits[i]&1):((i+Math.floor(i/3))&1);
       const hue=hues[i]||0;
       const fill=hue===0?(shade?palette.aDark:palette.aLight):(shade?palette.bDark:palette.bLight);
       region.cells.forEach(([r,c])=>{
-        body+=`<rect class="classic-region-cell" data-region="${i}" data-motif-hue="${hue}" x="${pad+c*step}" y="${pad+r*step}" width="${step+.35}" height="${step+.35}" fill="${fill}"/>`;
+        body+=`<rect class="classic-region-cell" data-region="${i}" data-motif-hue="${hue}" x="${pad+c*step-.2}" y="${pad+r*step-.2}" width="${step+.4}" height="${step+.4}" fill="${fill}"/>`;
       });
     });
 
@@ -226,12 +242,15 @@
     }
 
     return {
-      svg:`<svg class="classic-cipher-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Traditional Hitomezashi cipher with ${regions.length} enclosed regions">${body}</svg>`,
+      svg:`<svg class="classic-cipher-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Traditional Hitomezashi cipher with ${regions.length} substantial surface motifs">${body}</svg>`,
       regions,
+      allRegions,
       motifHues:hues
     };
   }
 
+  C.MIN_SURFACE_AREA=MIN_SURFACE_AREA;
+  C.surfaceRegions=surfaceRegions;
   C.chooseBeautifulPattern=chooseBeautifulPattern;
   C.beautyScore=beautyScore;
   C.motifHueAssignments=motifHueAssignments;
