@@ -48,18 +48,8 @@ jobs:
           console.log(`Classic smoke test passed: ${decoded.hPhases.length}x${decoded.vPhases.length} tracks, ${regions.length} enclosed regions.`);
           NODE
 
-      - name: Assemble Classic site assets
-        run: |
-          python <<'PY'
-          from pathlib import Path
-          p = Path('index.html')
-          s = p.read_text()
-          if 'classic.css' not in s:
-              s = s.replace('</head>', '  <link rel="stylesheet" href="./classic.css?v=1">\n</head>')
-          if 'classic.js' not in s:
-              s = s.replace('</body>', '  <script src="./classic.js?v=1"></script>\n  <script src="./classic-ui.js?v=1"></script>\n</body>')
-          p.write_text(s)
-          PY
+      - name: Assemble site
+        run: python3 assemble-site.py
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
