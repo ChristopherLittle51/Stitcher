@@ -31,6 +31,7 @@ jobs:
           node --check classic.js
           node --check classic-patch.js
           node --check classic-ui.js
+          node --check classic-mobile.js
 
       - name: Smoke test Classic codec
         run: |
