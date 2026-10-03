@@ -2,10 +2,10 @@
   const ALPHABET=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ',' '];
   const INDEX=new Map(ALPHABET.map((ch,i)=>[ch,i]));
   const PALETTES=[
-    {name:'Indigo & Saffron',background:'#f7f0df',thread:'#173b70',aLight:'#a9c4df',aDark:'#4d86bd',bLight:'#f2d19e',bDark:'#e4a038'},
-    {name:'Teal & Coral',background:'#f6f0e8',thread:'#153d49',aLight:'#9bc9c3',aDark:'#3f9690',bLight:'#f0b1a2',bDark:'#d96f5c'},
-    {name:'Plum & Sage',background:'#f5f0e7',thread:'#3f3150',aLight:'#c3afd0',aDark:'#806397',bLight:'#c9d4ae',bDark:'#839a66'},
-    {name:'Navy & Rust',background:'#f4eee2',thread:'#132f50',aLight:'#a8bed8',aDark:'#486f9f',bLight:'#e7b18e',bDark:'#b9663d'}
+    {name:'Indigo & Saffron',background:'#f7f0df',ground:'#cbd8b7',thread:'#173b70',aLight:'#a9c4df',aDark:'#4d86bd',bLight:'#f2d19e',bDark:'#e4a038'},
+    {name:'Teal & Coral',background:'#f6f0e8',ground:'#d8cbea',thread:'#153d49',aLight:'#9bc9c3',aDark:'#3f9690',bLight:'#f0b1a2',bDark:'#d96f5c'},
+    {name:'Plum & Sage',background:'#f5f0e7',ground:'#bdd3df',thread:'#3f3150',aLight:'#c3afd0',aDark:'#806397',bLight:'#c9d4ae',bDark:'#839a66'},
+    {name:'Navy & Rust',background:'#f4eee2',ground:'#c8d5bd',thread:'#132f50',aLight:'#a8bed8',aDark:'#486f9f',bLight:'#e7b18e',bDark:'#b9663d'}
   ];
 
   function mod(n,m){ return ((n%m)+m)%m; }
@@ -126,43 +126,35 @@
     const surface=normalize(surfaceText);
     if(line.length>80||surface.length>80) throw new Error('Classic messages are limited to 80 characters each.');
     const lineBits=bitsForText(line);
-    const neededRegions=surface.length*5;
+    const neededRegions=Math.max(surface.length*5,surface.length?0:5);
     const neededGroups=Math.max(line.length,2);
-    const baseSeed=hashSeed(line+'|'+surface);
-    let best=null;
+    const seed=hashSeed(line+'|'+surface);
 
-    for(let totalGroups=neededGroups;totalGroups<=neededGroups+32;totalGroups++){
+    for(let extraGroups=0;extraGroups<=120;extraGroups++){
+      const totalGroups=neededGroups+extraGroups;
       const pairs=[];
-      for(let hg=1;hg<totalGroups;hg++){
-        const vg=totalGroups-hg;
-        if(vg<1) continue;
-        pairs.push([hg,vg]);
-      }
+      for(let hg=1;hg<totalGroups;hg++) pairs.push([hg,totalGroups-hg]);
       pairs.sort((a,b)=>Math.abs(a[0]-a[1])-Math.abs(b[0]-b[1]));
 
-      for(const [hGroups,vGroups] of pairs.slice(0,8)){
-        const hTracks=hGroups*5;
-        const vTracks=vGroups*5;
-        for(let attempt=0;attempt<48;attempt++){
-          const seed=(baseSeed+Math.imul(totalGroups+1,2654435761)+attempt*1013904223)>>>0;
-          const phases=candidatePhases(lineBits,hTracks,vTracks,seed);
+      for(let variant=0;variant<10;variant++){
+        for(const [hGroups,vGroups] of pairs.slice(0,Math.min(pairs.length,18))){
+          const hTracks=hGroups*5;
+          const vTracks=vGroups*5;
+          const phases=candidatePhases(lineBits,hTracks,vTracks,seed+variant*7919+extraGroups*104729+hGroups*97);
           const regions=enclosedRegions(phases.hPhases,phases.vPhases);
-          const candidate={...phases,hTracks,vTracks,regions,seed};
-          if(!best||regions.length>best.regions.length) best=candidate;
-          if(regions.length>=neededRegions) return candidate;
+          if(regions.length>=neededRegions){
+            return {...phases,hTracks,vTracks,regions};
+          }
         }
       }
     }
-
-    if(neededRegions===0&&best) return best;
-    throw new Error('Could not create enough enclosed regions for this Classic surface message. Try a shorter surface message.');
+    throw new Error('Could not find a Classic field with enough enclosed regions. Try a shorter surface message.');
   }
 
   function buildChallenge(title,lineText,surfaceText,paletteIndex=0){
     const line=normalize(lineText);
     const surface=normalize(surfaceText);
     const pattern=choosePattern(line,surface);
-    const surfaceBits=bitsForText(surface);
     return {
       v:1,
       mode:'classic',
@@ -172,17 +164,100 @@
       palette:mod(Number(paletteIndex)||0,PALETTES.length),
       hPhases:pattern.hPhases,
       vPhases:pattern.vPhases,
-      surfaceBits
+      surfaceBits:bitsForText(surface)
     };
   }
 
-  function regionShadeBit(challenge,index){
-    if(index<challenge.surfaceBits.length) return challenge.surfaceBits[index]&1;
-    return (index+Math.floor(index/3))&1;
+  function expectedMessages(challenge){
+    const phases=[...challenge.hPhases,...challenge.vPhases];
+    return {
+      line:textFromBits(phases,challenge.lineLength),
+      color:textFromBits(challenge.surfaceBits,challenge.colorLength)
+    };
   }
 
-  function regionHueBit(index){
-    return (index+Math.floor(index/2))&1;
+  function packBits(fields){
+    const bits=[];
+    fields.forEach(({value,count})=>{
+      for(let i=count-1;i>=0;i--) bits.push((value>>i)&1);
+    });
+    const out=new Uint8Array(Math.ceil(bits.length/8));
+    bits.forEach((bit,i)=>out[i>>3]|=bit<<(7-(i&7)));
+    return out;
+  }
+
+  function makeBitReader(bytes){
+    let pos=0;
+    return count=>{
+      let value=0;
+      for(let i=0;i<count;i++){
+        if(pos>=bytes.length*8) throw new Error('Classic challenge data ended early.');
+        value=(value<<1)|((bytes[pos>>3]>>(7-(pos&7)))&1);
+        pos++;
+      }
+      return value;
+    };
+  }
+
+  function bytesToBase64Url(bytes){
+    let binary='';bytes.forEach(b=>binary+=String.fromCharCode(b));
+    return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+
+  function base64UrlToBytes(text){
+    const padded=String(text||'').replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((String(text||'').length+3)%4);
+    const binary=atob(padded);
+    return Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+  }
+
+  function encodePayload(challenge,options={}){
+    const includeTitle=options.includeTitle!==false;
+    const titleBytes=includeTitle?new TextEncoder().encode(challenge.title||'Stitcher Classic'):new Uint8Array();
+    if(titleBytes.length>255) throw new Error('Classic title is too long.');
+    if(challenge.hPhases.length>511||challenge.vPhases.length>511) throw new Error('Classic field is too large to share.');
+    const fields=[
+      {value:0xa7,count:8},
+      {value:challenge.lineLength,count:7},
+      {value:challenge.colorLength,count:7},
+      {value:challenge.palette,count:3},
+      {value:includeTitle?1:0,count:1},
+      {value:challenge.hPhases.length,count:9},
+      {value:challenge.vPhases.length,count:9}
+    ];
+    if(includeTitle){
+      fields.push({value:titleBytes.length,count:8});
+      titleBytes.forEach(value=>fields.push({value,count:8}));
+    }
+    challenge.hPhases.forEach(value=>fields.push({value:value&1,count:1}));
+    challenge.vPhases.forEach(value=>fields.push({value:value&1,count:1}));
+    challenge.surfaceBits.slice(0,challenge.colorLength*5).forEach(value=>fields.push({value:value&1,count:1}));
+    return bytesToBase64Url(packBits(fields));
+  }
+
+  function decodePayload(encoded){
+    const bytes=base64UrlToBytes(encoded);
+    const read=makeBitReader(bytes);
+    if(read(8)!==0xa7) throw new Error('Not a Stitcher Classic challenge.');
+    const lineLength=read(7);
+    const colorLength=read(7);
+    const palette=read(3);
+    const hasTitle=read(1)===1;
+    const hCount=read(9);
+    const vCount=read(9);
+    let title='Stitcher Classic';
+    if(hasTitle){
+      const titleLength=read(8);
+      const titleBytes=Uint8Array.from({length:titleLength},()=>read(8));
+      title=new TextDecoder().decode(titleBytes)||title;
+    }
+    const hPhases=Array.from({length:hCount},()=>read(1));
+    const vPhases=Array.from({length:vCount},()=>read(1));
+    const surfaceBits=Array.from({length:colorLength*5},()=>read(1));
+    return {v:1,mode:'classic',title,lineLength,colorLength,palette,hPhases,vPhases,surfaceBits};
+  }
+
+  function regionShadeBit(challenge,index){
+    return index<challenge.surfaceBits.length?challenge.surfaceBits[index]&1:((index+Math.floor(index/2))&1);
   }
 
   function svgMarkup(challenge,options={}){
@@ -198,13 +273,11 @@
     const height=rows*step+pad*2;
     let body=`<rect x="0" y="0" width="${width}" height="${height}" rx="8" fill="${palette.background}"/>`;
 
-    const regionByCell=new Map();
     regions.forEach((region,i)=>{
       const shade=regionShadeBit(challenge,i);
-      const hue=regionHueBit(i);
+      const hue=(region.minR+region.minC+i)&1;
       const fill=hue===0?(shade?palette.aDark:palette.aLight):(shade?palette.bDark:palette.bLight);
       region.cells.forEach(([r,c])=>{
-        regionByCell.set(`${r},${c}`,i);
         body+=`<rect class="classic-region-cell" data-region="${i}" x="${pad+c*step}" y="${pad+r*step}" width="${step}" height="${step}" fill="${fill}"/>`;
       });
     });
@@ -241,100 +314,12 @@
       });
     }
 
-    return {
-      svg:`<svg class="classic-cipher-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Traditional Hitomezashi cipher with ${regions.length} enclosed regions">${body}</svg>`,
-      regions
-    };
-  }
-
-  function packBits(bits){
-    const out=new Uint8Array(Math.ceil(bits.length/8));
-    bits.forEach((bit,i)=>{if(bit) out[Math.floor(i/8)]|=1<<(7-(i%8));});
-    return out;
-  }
-
-  function unpackBits(bytes,count,offsetBits=0){
-    const bits=[];
-    for(let i=0;i<count;i++){
-      const p=offsetBits+i;
-      bits.push((bytes[Math.floor(p/8)]>>(7-(p%8)))&1);
-    }
-    return bits;
-  }
-
-  function bytesToBase64Url(bytes){
-    let binary='';
-    bytes.forEach(b=>binary+=String.fromCharCode(b));
-    return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  }
-
-  function base64UrlToBytes(text){
-    let s=String(text||'').replace(/-/g,'+').replace(/_/g,'/');
-    while(s.length%4) s+='=';
-    const binary=atob(s);
-    return Uint8Array.from(binary,ch=>ch.charCodeAt(0));
-  }
-
-  function encodePayload(challenge,{includeTitle=true}={}){
-    const titleBytes=includeTitle?new TextEncoder().encode(String(challenge.title||'').slice(0,80)):new Uint8Array();
-    if(titleBytes.length>255) throw new Error('Classic title is too long.');
-    const hCount=challenge.hPhases.length;
-    const vCount=challenge.vPhases.length;
-    if(hCount>255||vCount>255) throw new Error('Classic pattern is too large to share in this format.');
-    const lineLength=challenge.lineLength||0;
-    const colorLength=challenge.colorLength||0;
-    if(lineLength>255||colorLength>255) throw new Error('Classic message is too long to share.');
-
-    const dataBits=[...challenge.hPhases,...challenge.vPhases,...challenge.surfaceBits];
-    const packed=packBits(dataBits);
-    const header=new Uint8Array(9+titleBytes.length);
-    header[0]=0x43;header[1]=0x01;
-    header[2]=includeTitle?1:0;
-    header[3]=hCount;header[4]=vCount;
-    header[5]=lineLength;header[6]=colorLength;
-    header[7]=mod(challenge.palette||0,PALETTES.length);
-    header[8]=titleBytes.length;
-    header.set(titleBytes,9);
-    const out=new Uint8Array(header.length+packed.length);
-    out.set(header,0);out.set(packed,header.length);
-    return bytesToBase64Url(out);
-  }
-
-  function decodePayload(encoded){
-    const bytes=base64UrlToBytes(encoded);
-    if(bytes.length<9||bytes[0]!==0x43||bytes[1]!==0x01) throw new Error('Unsupported Classic challenge.');
-    const hasTitle=(bytes[2]&1)===1;
-    const hCount=bytes[3],vCount=bytes[4];
-    const lineLength=bytes[5],colorLength=bytes[6];
-    const palette=bytes[7];
-    const titleLength=bytes[8];
-    const dataStart=9+titleLength;
-    if(bytes.length<dataStart) throw new Error('Incomplete Classic challenge.');
-    const title=hasTitle?new TextDecoder().decode(bytes.slice(9,dataStart)):'Stitcher Classic';
-    const dataBytes=bytes.slice(dataStart);
-    const phaseCount=hCount+vCount;
-    const surfaceCount=colorLength*5;
-    const all=unpackBits(dataBytes,phaseCount+surfaceCount,0);
-    return {
-      v:1,mode:'classic',title:title||'Stitcher Classic',lineLength,colorLength,palette,
-      hPhases:all.slice(0,hCount),
-      vPhases:all.slice(hCount,phaseCount),
-      surfaceBits:all.slice(phaseCount)
-    };
-  }
-
-  function expectedMessages(challenge){
-    const phaseBits=[...challenge.hPhases,...challenge.vPhases].slice(0,(challenge.lineLength||0)*5);
-    const surfaceBits=challenge.surfaceBits.slice(0,(challenge.colorLength||0)*5);
-    return {
-      line:textFromBits(phaseBits,challenge.lineLength||0),
-      color:textFromBits(surfaceBits,challenge.colorLength||0)
-    };
+    return {svg:`<svg class="classic-cipher-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Traditional Hitomezashi cipher with ${regions.length} enclosed regions">${body}</svg>`,regions};
   }
 
   window.StitcherClassic={
-    ALPHABET,INDEX,PALETTES,normalize,bitsForText,textFromBits,
-    hVisible,vVisible,enclosedRegions,choosePattern,buildChallenge,
-    regionShadeBit,regionHueBit,svgMarkup,encodePayload,decodePayload,expectedMessages
+    ALPHABET,INDEX,PALETTES,mod,normalize,bitsForText,textFromBits,
+    hVisible,vVisible,enclosedRegions,choosePattern,buildChallenge,expectedMessages,
+    encodePayload,decodePayload,regionShadeBit,svgMarkup
   };
 })();
