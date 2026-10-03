@@ -89,5 +89,39 @@
     };
   }
 
+  function refreshGroundCopy(){
+    const modeNote=document.querySelector('.creator-mode-field .field-note');
+    if(modeNote) modeNote.textContent='Classic uses alternating stitch tracks plus two foreground hues over a third ground hue.';
+
+    const paletteNote=document.querySelector('#classic-palette-field .field-note');
+    if(paletteNote) paletteNote.textContent='The third hue is non-data ground. Foreground Hue A/B is decorative; only light versus dark stores surface bits.';
+
+    const ruleCards=document.querySelectorAll('#classic-rules .classic-rule-grid > div');
+    if(ruleCards[2]){
+      const heading=ruleCards[2].querySelector('strong');
+      const copy=ruleCards[2].querySelector('p');
+      if(heading) heading.textContent='Three-hue surface';
+      if(copy) copy.textContent='Ignore the ground hue. Only the two foreground hues mark shade-bearing enclosed motifs; foreground hue is decorative, light = 0, and dark = 1.';
+    }
+
+    const solver=document.querySelector('.classic-solver-card');
+    if(!solver) return;
+    const badge=solver.querySelector('.key-badge');
+    if(badge){
+      const count=new Set([...solver.querySelectorAll('.classic-region-cell')].map(cell=>cell.dataset.region)).size;
+      badge.textContent=`${count} shade motifs`;
+    }
+    const fieldNote=solver.querySelector('.classic-field-note');
+    if(fieldNote&&!fieldNote.textContent.includes('Ignore the ground hue.')){
+      fieldNote.textContent=fieldNote.textContent
+        .replace(/enclosed regions/g,'foreground motifs')
+        .replace('Light = 0, dark = 1.','Ignore the ground hue. Foreground light = 0, dark = 1.');
+    }
+    const annotationNote=document.querySelector('.annotation-note');
+    if(annotationNote) annotationNote.textContent='Classic keeps every stitch track strictly alternating. Track starts encode the stitch message. For the surface message, ignore the third ground hue and read light/dark only on the two foreground hues.';
+  }
+
   C.svgMarkup=svgMarkup;
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',refreshGroundCopy,{once:true});
+  else queueMicrotask(refreshGroundCopy);
 })();
