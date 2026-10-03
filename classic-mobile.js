@@ -46,7 +46,7 @@
 
     function calculateWidths(){
       fitWidth=Math.max(280,frame.clientWidth-12);
-      // ~20 px per 26-unit Classic cell at the default mobile working scale.
+      // ~20 screen pixels per 26-unit Classic cell at the default working scale.
       workingWidth=Math.max(fitWidth,Math.min(1800,view.width*(20/26)));
     }
 
@@ -59,7 +59,7 @@
       const width=workingWidth*zoom;
       svg.style.width=`${Math.round(width)}px`;
       svg.style.maxWidth='none';
-      tools.querySelector('.classic-zoom-readout').textContent=`${Math.round(width/workingWidth*100)}%`;
+      tools.querySelector('.classic-zoom-readout').textContent=`${Math.round(zoom*100)}%`;
       if(keepCenter&&oldWidth>0){
         const ratio=width/oldWidth;
         requestAnimationFrame(()=>{
@@ -72,14 +72,16 @@
     function fit(){
       calculateWidths();
       const oldCenterX=frame.scrollLeft+frame.clientWidth/2;
+      const oldCenterY=frame.scrollTop+frame.clientHeight/2;
       const oldWidth=parseFloat(svg.style.width)||workingWidth;
+      const ratio=fitWidth/oldWidth;
       svg.style.width=`${Math.round(fitWidth)}px`;
       svg.style.maxWidth='none';
       tools.querySelector('.classic-zoom-readout').textContent='Fit';
-      if(oldWidth){
-        const ratio=fitWidth/oldWidth;
-        requestAnimationFrame(()=>{frame.scrollLeft=Math.max(0,oldCenterX*ratio-frame.clientWidth/2);});
-      }
+      requestAnimationFrame(()=>{
+        frame.scrollLeft=Math.max(0,oldCenterX*ratio-frame.clientWidth/2);
+        frame.scrollTop=Math.max(0,oldCenterY*ratio-frame.clientHeight/2);
+      });
     }
 
     tools.addEventListener('click',event=>{
@@ -87,7 +89,7 @@
       if(zoomButton){
         const action=zoomButton.dataset.classicZoom;
         if(action==='fit') fit();
-        else applyZoom(zoom+(action==='in'?.2:-.2));
+        else applyZoom(zoom+(action==='in'?0.2:-0.2));
         return;
       }
       const focus=event.target.closest('.classic-focus-button');
