@@ -122,6 +122,8 @@
   }
 
   C.svgMarkup=svgMarkup;
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',refreshGroundCopy,{once:true});
-  else queueMicrotask(refreshGroundCopy);
+  if(typeof document!=='undefined'){
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',refreshGroundCopy,{once:true});
+    else queueMicrotask(refreshGroundCopy);
+  }
 })();
