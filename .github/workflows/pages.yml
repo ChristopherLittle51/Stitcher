@@ -29,6 +29,7 @@ jobs:
           node --check cipher.js
           node --check app.js
           node --check classic.js
+          node --check classic-beauty.js
           node --check classic-patch.js
           node --check classic-ui.js
           node --check classic-mobile.js
@@ -38,6 +39,7 @@ jobs:
           node <<'NODE'
           global.window = {};
           require('./classic.js');
+          require('./classic-beauty.js');
           require('./classic-patch.js');
           const C = global.window.StitcherClassic;
           const challenge = C.buildChallenge('Classic test', 'MEET ME AFTER MIDNIGHT', 'BRING THE KEY', 0);
@@ -49,12 +51,18 @@ jobs:
           const regions = C.enclosedRegions(decoded.hPhases, decoded.vPhases);
           if (regions.length < decoded.colorLength * 5) throw new Error('Classic generator did not create enough enclosed regions.');
 
+          const rendered = C.svgMarkup(decoded);
+          if (!Array.isArray(rendered.motifHues) || rendered.motifHues.length !== regions.length) throw new Error('Classic motif hue assignment is incomplete.');
+          if (!rendered.svg.includes('data-motif-hue=')) throw new Error('Classic renderer is not using motif-aware hues.');
+          const majorRegions = regions.filter(region => region.cells.length > 1);
+          if (majorRegions.length > 1 && new Set(rendered.motifHues).size < 2) throw new Error('Classic motif hues did not produce both decorative colors.');
+
           const stitchOnly = C.buildChallenge('Stitch only', 'HELLO', '', 0);
           const stitchOnlyRegions = C.enclosedRegions(stitchOnly.hPhases, stitchOnly.vPhases);
           if (stitchOnly.colorLength !== 0 || stitchOnly.surfaceBits.length !== 0) throw new Error('Stitch-only fallback leaked placeholder surface data.');
           if (stitchOnlyRegions.length < 5) throw new Error('Stitch-only Classic puzzle did not preserve enclosed geometry.');
 
-          console.log(`Classic smoke test passed: ${decoded.hPhases.length}x${decoded.vPhases.length} tracks, ${regions.length} enclosed regions; stitch-only fallback has ${stitchOnlyRegions.length}.`);
+          console.log(`Classic smoke test passed: ${decoded.hPhases.length}x${decoded.vPhases.length} tracks, ${regions.length} enclosed regions, motif beauty ${C.beautyScore(regions, decoded.hPhases.length, decoded.vPhases.length, decoded.colorLength*5).toFixed(2)}.`);
           NODE
 
       - name: Assemble site
